@@ -688,6 +688,7 @@ void EditEntryWidget::setForms(const Entry* entry, bool restore)
     m_advancedUi->editAttributeButton->setEnabled(false);
     m_advancedUi->removeAttributeButton->setEnabled(false);
     m_advancedUi->attributesEdit->setReadOnly(m_history);
+    m_advancedUi->tagsEdit->setReadOnly(m_history);
     QAbstractItemView::EditTriggers editTriggers;
     if (m_history) {
         editTriggers = QAbstractItemView::NoEditTriggers;
@@ -724,6 +725,8 @@ void EditEntryWidget::setForms(const Entry* entry, bool restore)
         m_advancedUi->attributesEdit->setPlainText("");
         m_advancedUi->attributesEdit->setEnabled(false);
     }
+
+    m_advancedUi->tagsEdit->setText(entry->tags());
 
     QList<int> sizes = m_advancedUi->attributesSplitter->sizes();
     sizes.replace(0, m_advancedUi->attributesSplitter->width() * 0.3);
@@ -871,6 +874,7 @@ void EditEntryWidget::updateEntryData(Entry* entry) const
     QRegularExpression newLineRegex("(?:\r?\n|\r)");
 
     entry->attributes()->copyCustomKeysFrom(m_entryAttributes);
+    entry->setTags(m_advancedUi->tagsEdit->text());
     entry->attachments()->copyDataFrom(m_advancedUi->attachmentsWidget->entryAttachments());
     entry->customData()->copyDataFrom(m_editWidgetProperties->customData());
     entry->setTitle(m_mainUi->titleEdit->text().replace(newLineRegex, " "));
