@@ -173,6 +173,8 @@ void DetailsWidget::updateEntryGeneralTab()
         m_ui->entryPasswordLabel->setToolTip({});
     }
 
+    m_ui->tagsLabel->setText(m_currentEntry->tags());
+
     m_ui->entryUrlLabel->setRawText(m_currentEntry->displayUrl());
     const QString url = m_currentEntry->webUrl();
     if (!url.isEmpty()) {
