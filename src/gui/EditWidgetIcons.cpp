@@ -56,22 +56,17 @@ EditWidgetIcons::EditWidgetIcons(QWidget* parent)
 
     connect(m_ui->defaultIconsView, SIGNAL(clicked(QModelIndex)), this, SLOT(updateRadioButtonDefaultIcons()));
     connect(m_ui->customIconsView, SIGNAL(clicked(QModelIndex)), this, SLOT(updateRadioButtonCustomIcons()));
+    connect(m_ui->defaultIconsRadio, SIGNAL(toggled(bool)), this, SIGNAL(widgetUpdated()));
     connect(m_ui->defaultIconsRadio, SIGNAL(toggled(bool)), this, SLOT(updateWidgetsDefaultIcons(bool)));
     connect(m_ui->customIconsRadio, SIGNAL(toggled(bool)), this, SLOT(updateWidgetsCustomIcons(bool)));
     connect(m_ui->addButton, SIGNAL(clicked()), SLOT(addCustomIconFromFile()));
     connect(m_ui->deleteButton, SIGNAL(clicked()), SLOT(removeCustomIcon()));
     connect(m_ui->faviconButton, SIGNAL(clicked()), SLOT(downloadFavicon()));
 
-    connect(m_ui->defaultIconsRadio, SIGNAL(toggled(bool)), this, SIGNAL(widgetUpdated()));
-    connect(m_ui->defaultIconsRadio, SIGNAL(toggled(bool)), this, SIGNAL(widgetUpdated()));
-    connect(m_ui->defaultIconsView->selectionModel(),
-            SIGNAL(selectionChanged(QItemSelection,QItemSelection)),
-            this,
-            SIGNAL(widgetUpdated()));
-    connect(m_ui->customIconsView->selectionModel(),
-            SIGNAL(selectionChanged(QItemSelection,QItemSelection)),
-            this,
-            SIGNAL(widgetUpdated()));
+    connect(m_ui->defaultIconsView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)),
+            this, SIGNAL(widgetUpdated()));
+    connect(m_ui->customIconsView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)),
+            this, SIGNAL(widgetUpdated()));
 
     m_ui->faviconButton->setVisible(false);
     m_ui->addButton->setEnabled(true);

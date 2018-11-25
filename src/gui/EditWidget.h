@@ -44,7 +44,7 @@ public:
     void addPage(const QString& labelText, const QIcon& icon, QWidget* widget);
     void setPageHidden(QWidget* widget, bool hidden);
     void setCurrentPage(int index);
-    void setHeadline(const QString& text);
+    void setHeadline(const QString& text, const QPixmap& icon = {});
     QLabel* headlineLabel();
     void setReadOnly(bool readOnly);
     bool readOnly() const;

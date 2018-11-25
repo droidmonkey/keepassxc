@@ -704,7 +704,7 @@ void DatabaseWidget::switchToMainView(bool previousDialogAccepted)
 
 void DatabaseWidget::switchToHistoryView(Entry* entry)
 {
-    m_historyEditEntryWidget->loadEntry(entry, false, true, m_editEntryWidget->entryTitle(), m_db);
+    m_historyEditEntryWidget->loadEntry(entry, false, true, m_db);
     setCurrentWidget(m_historyEditEntryWidget);
 }
 
@@ -732,7 +732,7 @@ void DatabaseWidget::switchToEntryEdit(Entry* entry, bool create)
 
     Q_ASSERT(group);
 
-    m_editEntryWidget->loadEntry(entry, create, false, group->name(), m_db);
+    m_editEntryWidget->loadEntry(entry, create, false, m_db);
     setCurrentWidget(m_editEntryWidget);
 }
 

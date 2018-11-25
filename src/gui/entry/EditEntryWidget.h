@@ -62,10 +62,7 @@ public:
     explicit EditEntryWidget(QWidget* parent = nullptr);
     ~EditEntryWidget() override;
 
-    void loadEntry(Entry* entry, bool create, bool history, const QString& parentName,
-                   QSharedPointer<Database> database);
-
-    QString entryTitle() const;
+    void loadEntry(Entry* entry, bool create, bool history, QSharedPointer<Database> database);
     void clear();
     bool hasBeenModified() const;
 
@@ -105,6 +102,7 @@ private slots:
     void toggleHideNotes(bool visible);
     void pickColor();
     void setUnsavedChanges(bool hasUnsaved = true);
+    void updateHeader();
 #ifdef WITH_XC_SSHAGENT
     void updateSSHAgent();
     void updateSSHAgentAttachment();

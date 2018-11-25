@@ -128,7 +128,6 @@ void EditEntryWidget::setupMain()
     m_mainUi->fetchFaviconButton->setVisible(false);
 #endif
 
-
     connect(m_mainUi->togglePasswordButton, SIGNAL(toggled(bool)), m_mainUi->passwordEdit, SLOT(setShowPassword(bool)));
     connect(m_mainUi->togglePasswordGeneratorButton, SIGNAL(toggled(bool)), SLOT(togglePasswordGeneratorButton(bool)));
 #ifdef WITH_XC_NETWORKING
@@ -145,7 +144,7 @@ void EditEntryWidget::setupMain()
     QAction* action = new QAction(this);
     action->setShortcut(Qt::CTRL | Qt::Key_Return);
     connect(action, SIGNAL(triggered()), this, SLOT(commitEntry()));
-    this->addAction(action);
+    addAction(action);
 
     m_mainUi->passwordGenerator->hide();
     m_mainUi->passwordGenerator->reset();
@@ -159,10 +158,8 @@ void EditEntryWidget::setupAdvanced()
     m_advancedUi->attachmentsWidget->setReadOnly(false);
     m_advancedUi->attachmentsWidget->setButtonsVisible(true);
 
-    connect(m_advancedUi->attachmentsWidget,
-            &EntryAttachmentsWidget::errorOccurred,
-            this,
-            [this](const QString& error) { showMessage(error, MessageWidget::Error); });
+    connect(m_advancedUi->attachmentsWidget, &EntryAttachmentsWidget::errorOccurred,
+            this, [this](const QString& error) { showMessage(error, MessageWidget::Error); });
 
     m_attributesModel->setEntryAttributes(m_entryAttributes);
     m_advancedUi->attributesView->setModel(m_attributesModel);
@@ -194,12 +191,10 @@ void EditEntryWidget::setupAutoType()
     m_autoTypeUi->assocView->setModel(m_autoTypeAssocModel);
     m_autoTypeUi->assocView->setColumnHidden(1, true);
     connect(m_autoTypeUi->enableButton, SIGNAL(toggled(bool)), SLOT(updateAutoTypeEnabled()));
-    connect(
-        m_autoTypeUi->customSequenceButton, SIGNAL(toggled(bool)), m_autoTypeUi->sequenceEdit, SLOT(setEnabled(bool)));
-    connect(m_autoTypeUi->customWindowSequenceButton,
-            SIGNAL(toggled(bool)),
-            m_autoTypeUi->windowSequenceEdit,
-            SLOT(setEnabled(bool)));
+    connect(m_autoTypeUi->customSequenceButton, SIGNAL(toggled(bool)),
+            m_autoTypeUi->sequenceEdit, SLOT(setEnabled(bool)));
+    connect(m_autoTypeUi->customWindowSequenceButton, SIGNAL(toggled(bool)),
+            m_autoTypeUi->windowSequenceEdit, SLOT(setEnabled(bool)));
     connect(m_autoTypeUi->assocAddButton, SIGNAL(clicked()), SLOT(insertAutoTypeAssoc()));
     connect(m_autoTypeUi->assocRemoveButton, SIGNAL(clicked()), SLOT(removeAutoTypeAssoc()));
     connect(m_autoTypeUi->assocView->selectionModel(),
@@ -248,6 +243,7 @@ void EditEntryWidget::setupEntryUpdate()
 {
     // Entry tab
     connect(m_mainUi->titleEdit, SIGNAL(textChanged(QString)), this, SLOT(setUnsavedChanges()));
+    connect(m_mainUi->titleEdit, SIGNAL(textChanged(QString)), SLOT(updateHeader()));
     connect(m_mainUi->usernameEdit, SIGNAL(textChanged(QString)), this, SLOT(setUnsavedChanges()));
     connect(m_mainUi->passwordEdit, SIGNAL(textChanged(QString)), this, SLOT(setUnsavedChanges()));
     connect(m_mainUi->passwordRepeatEdit, SIGNAL(textChanged(QString)), this, SLOT(setUnsavedChanges()));
@@ -268,7 +264,8 @@ void EditEntryWidget::setupEntryUpdate()
     connect(m_advancedUi->attachmentsWidget, SIGNAL(widgetUpdated()), this, SLOT(setUnsavedChanges()));
 
     // Icon tab
-    connect(m_iconsWidget, SIGNAL(widgetUpdated()), this, SLOT(setUnsavedChanges()));
+    connect(m_iconsWidget, SIGNAL(widgetUpdated()), SLOT(setUnsavedChanges()));
+    connect(m_iconsWidget, SIGNAL(widgetUpdated()), SLOT(updateHeader()));
 
     // Auto-Type tab
     connect(m_autoTypeUi->enableButton, SIGNAL(stateChanged(int)), this, SLOT(setUnsavedChanges()));
@@ -288,13 +285,11 @@ void EditEntryWidget::setupEntryUpdate()
         connect(m_sshAgentUi->attachmentRadioButton, SIGNAL(toggled(bool)), this, SLOT(setUnsavedChanges()));
         connect(m_sshAgentUi->externalFileRadioButton, SIGNAL(toggled(bool)), this, SLOT(setUnsavedChanges()));
         connect(m_sshAgentUi->attachmentComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(setUnsavedChanges()));
-        connect(
-            m_sshAgentUi->attachmentComboBox, SIGNAL(editTextChanged(QString)), this, SLOT(setUnsavedChanges()));
+        connect(m_sshAgentUi->attachmentComboBox, SIGNAL(editTextChanged(QString)), this, SLOT(setUnsavedChanges()));
         connect(m_sshAgentUi->externalFileEdit, SIGNAL(textChanged(QString)), this, SLOT(setUnsavedChanges()));
         connect(m_sshAgentUi->addKeyToAgentCheckBox, SIGNAL(stateChanged(int)), this, SLOT(setUnsavedChanges()));
         connect(m_sshAgentUi->removeKeyFromAgentCheckBox, SIGNAL(stateChanged(int)), this, SLOT(setUnsavedChanges()));
-        connect(
-            m_sshAgentUi->requireUserConfirmationCheckBox, SIGNAL(stateChanged(int)), this, SLOT(setUnsavedChanges()));
+        connect(m_sshAgentUi->requireUserConfirmationCheckBox, SIGNAL(stateChanged(int)), this, SLOT(setUnsavedChanges()));
         connect(m_sshAgentUi->lifetimeCheckBox, SIGNAL(stateChanged(int)), this, SLOT(setUnsavedChanges()));
         connect(m_sshAgentUi->lifetimeSpinBox, SIGNAL(valueChanged(int)), this, SLOT(setUnsavedChanges()));
     }
@@ -316,6 +311,18 @@ void EditEntryWidget::histEntryActivated(const QModelIndex& index)
     QModelIndex indexMapped = m_sortModel->mapToSource(index);
     if (indexMapped.isValid()) {
         emitHistoryEntryActivated(indexMapped);
+    }
+}
+
+void EditEntryWidget::updateHeader()
+{
+    if (m_create) {
+        setHeadline(QString("%1 > %2").arg(m_entry->group()->name(), tr("Add entry")));
+    } else if (m_history) {
+        setHeadline(QString("%1 > %2").arg(m_entry->title(), tr("Entry history")), m_entry->iconPixmap());
+    } else {
+        setHeadline(QString("%1 > %2 > %3").arg(m_entry->group()->name(), m_entry->title(), tr("Edit entry")),
+                m_entry->iconPixmap());
     }
 }
 
@@ -644,31 +651,14 @@ void EditEntryWidget::toggleHideNotes(bool visible)
     m_mainUi->notesHint->setVisible(!visible);
 }
 
-QString EditEntryWidget::entryTitle() const
-{
-    if (m_entry) {
-        return m_entry->title();
-    } else {
-        return QString();
-    }
-}
-
-void EditEntryWidget::loadEntry(Entry* entry, bool create, bool history, const QString& parentName, QSharedPointer<Database> database)
+void EditEntryWidget::loadEntry(Entry* entry, bool create, bool history, QSharedPointer<Database> database)
 {
     m_entry = entry;
     m_db = std::move(database);
     m_create = create;
     m_history = history;
 
-    if (history) {
-        setHeadline(QString("%1 > %2").arg(parentName, tr("Entry history")));
-    } else {
-        if (create) {
-            setHeadline(QString("%1 > %2").arg(parentName, tr("Add entry")));
-        } else {
-            setHeadline(QString("%1 > %2 > %3").arg(parentName, entry->title(), tr("Edit entry")));
-        }
-    }
+    updateHeader();
 
     setForms(entry);
     setReadOnly(m_history);

@@ -86,9 +86,15 @@ void EditWidget::setCurrentPage(int index)
     m_ui->stackedWidget->setCurrentIndex(index);
 }
 
-void EditWidget::setHeadline(const QString& text)
+void EditWidget::setHeadline(const QString& text, const QPixmap& icon)
 {
     m_ui->headerLabel->setText(text);
+    if (icon.isNull()) {
+        m_ui->headerIconLabel->hide();
+    } else {
+        m_ui->headerIconLabel->show();
+        m_ui->headerIconLabel->setPixmap(icon.scaled(16, 16));
+    }
 }
 
 QLabel* EditWidget::headlineLabel()
