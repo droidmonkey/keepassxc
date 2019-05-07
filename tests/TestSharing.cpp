@@ -25,7 +25,7 @@
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
 
-#include "config-keepassx-tests.h"
+#include "config-keepassxc-tests.h"
 #include "core/Metadata.h"
 #include "crypto/Crypto.h"
 #include "crypto/Random.h"

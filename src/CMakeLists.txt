@@ -23,7 +23,7 @@ if(NOT ZXCVBN_LIBRARIES)
     set(ZXCVBN_LIBRARIES zxcvbn)
 endif(NOT ZXCVBN_LIBRARIES)
 
-set(keepassx_SOURCES
+set(keepassxc_core_SOURCES
         core/Alloc.cpp
         core/AutoTypeAssociations.cpp
         core/AutoTypeMatch.cpp
@@ -44,6 +44,7 @@ set(keepassx_SOURCES
         core/InactivityTimer.cpp
         core/Merger.cpp
         core/Metadata.cpp
+        core/OSEventFilter.cpp
         core/PasswordGenerator.cpp
         core/PassphraseGenerator.cpp
         core/SignalMultiplexer.cpp
@@ -166,8 +167,7 @@ set(keepassx_SOURCES
         streams/SymmetricCipherStream.cpp
         totp/totp.cpp)
 if(APPLE)
-    set(keepassx_SOURCES
-            ${keepassx_SOURCES}
+    list(APPEND keepassxc_core_SOURCES
             core/ScreenLockListenerMac.cpp
             core/MacPasteboard.cpp
             gui/macutils/MacUtils.cpp
@@ -175,23 +175,19 @@ if(APPLE)
             gui/macutils/AppKit.h)
 endif()
 if(UNIX AND NOT APPLE)
-    set(keepassx_SOURCES
-            ${keepassx_SOURCES}
+    list(APPEND keepassxc_core_SOURCES
             core/ScreenLockListenerDBus.cpp
             gui/MainWindowAdaptor.cpp)
 endif()
 if(MINGW)
-    set(keepassx_SOURCES
-            ${keepassx_SOURCES}
+    list(APPEND keepassxc_core_SOURCES
             core/ScreenLockListenerWin.cpp)
 endif()
-if(MINGW OR (UNIX AND NOT APPLE))
-    set(keepassx_SOURCES
-            ${keepassx_SOURCES}
-            core/OSEventFilter.cpp)
-endif()
 
-set(keepassx_SOURCES_MAINEXE main.cpp)
+# KeePassXC Plugins
+macro(register_plugin libname)
+    set(KPXC_PLUGIN_LIBRARIES ${KPXC_PLUGIN_LIBRARIES} ${libname} PARENT_SCOPE)
+endmacro()
 
 add_feature_info(Auto-Type WITH_XC_AUTOTYPE "Automatic password typing")
 add_feature_info(Networking WITH_XC_NETWORKING "Compile KeePassXC with network access code (e.g. for downloading website icons)")
@@ -207,66 +203,47 @@ if(APPLE)
     add_feature_info(TouchID WITH_XC_TOUCHID "TouchID integration")
 endif()
 
-set(BROWSER_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/browser)
+# Auto-Type
+add_subdirectory(autotype)
+
+# Browser Plugin with Proxy
 add_subdirectory(browser)
 add_subdirectory(proxy)
 if(WITH_XC_BROWSER)
-    set(keepassxcbrowser_LIB keepassxcbrowser)
-    set(keepassx_SOURCES ${keepassx_SOURCES} gui/dbsettings/DatabaseSettingsWidgetBrowser.cpp)
+    set(keepassxc_core_SOURCES ${keepassxc_core_SOURCES} gui/dbsettings/DatabaseSettingsWidgetBrowser.cpp)
 endif()
 
-add_subdirectory(autotype)
-add_subdirectory(cli)
+# QRCode
 add_subdirectory(qrcode)
 set(qrcode_LIB qrcode)
 
-add_subdirectory(crypto/ssh)
-if(WITH_XC_CRYPTO_SSH)
-    set(crypto_ssh_LIB crypto_ssh)
-endif()
+# Crypto
+add_subdirectory(crypto)
 
-add_subdirectory(keeshare)
-if(WITH_XC_KEESHARE)
-    set(keeshare_LIB keeshare)
-endif()
-
+# SSH Agent
 add_subdirectory(sshagent)
-if(WITH_XC_SSHAGENT)
-    set(sshagent_LIB sshagent)
-endif()
 
+# KeeShare
+add_subdirectory(keeshare)
+
+# Freedesktop.org Secrets
 add_subdirectory(fdosecrets)
-if(WITH_XC_FDOSECRETS)
-    set(fdosecrets_LIB fdosecrets)
-endif()
 
-set(autotype_SOURCES
-        core/Tools.cpp
-        autotype/AutoType.cpp
-        autotype/AutoTypeAction.cpp
-        autotype/AutoTypeFilterLineEdit.cpp
-        autotype/AutoTypeSelectDialog.cpp
-        autotype/AutoTypeSelectView.cpp
-        autotype/ShortcutWidget.cpp
-        autotype/WildcardMatcher.cpp
-        autotype/WindowSelectComboBox.cpp)
-
-if(MINGW)
-    set(keepassx_SOURCES_MAINEXE ${keepassx_SOURCES_MAINEXE} ${CMAKE_SOURCE_DIR}/share/windows/icon.rc)
-endif()
-
+# Yubikey
 if(WITH_XC_YUBIKEY)
-    list(APPEND keepassx_SOURCES keys/drivers/YubiKey.cpp)
+    list(APPEND keepassxc_core_SOURCES keys/drivers/YubiKey.cpp)
 else()
-    list(APPEND keepassx_SOURCES keys/drivers/YubiKey.h keys/drivers/YubiKeyStub.cpp)
+    list(APPEND keepassxc_core_SOURCES keys/drivers/YubiKey.h keys/drivers/YubiKeyStub.cpp)
 endif()
 
+# Update Checker
 if(WITH_XC_NETWORKING)
-    list(APPEND keepassx_SOURCES updatecheck/UpdateChecker.cpp gui/UpdateCheckDialog.cpp)
+    list(APPEND keepassxc_core_SOURCES updatecheck/UpdateChecker.cpp gui/UpdateCheckDialog.cpp)
 endif()
 
+# Apple TouchID
 if(WITH_XC_TOUCHID)
-    list(APPEND keepassx_SOURCES touchid/TouchID.mm)
+    list(APPEND keepassxc_core_SOURCES touchid/TouchID.mm)
     # TODO: Remove -Wno-error once deprecation warnings have been resolved.
     set_source_files_properties(touchid/TouchID.mm PROPERTY COMPILE_FLAGS "-Wno-old-style-cast -Wno-error")
 endif()
@@ -274,17 +251,11 @@ endif()
 configure_file(config-keepassx.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-keepassx.h)
 configure_file(git-info.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/git-info.h)
 
-add_library(autotype STATIC ${autotype_SOURCES})
-target_link_libraries(autotype Qt5::Core Qt5::Widgets)
-
-add_library(keepassx_core STATIC ${keepassx_SOURCES})
-
-set_target_properties(keepassx_core PROPERTIES COMPILE_DEFINITIONS KEEPASSX_BUILDING_CORE)
-target_link_libraries(keepassx_core
-        autotype
-        ${keepassxcbrowser_LIB}
-        ${qrcode_LIB}
-        ${fdosecrets_LIB}
+# Define KeePassXC Core Library
+add_library(keepassxc_core STATIC ${keepassxc_core_SOURCES})
+set_target_properties(keepassxc_core PROPERTIES COMPILE_DEFINITIONS KEEPASSXC_BUILDING_CORE)
+target_link_libraries(keepassxc_core
+        ${KPXC_PLUGIN_LIBRARIES}
         Qt5::Core
         Qt5::Concurrent
         Qt5::Network
@@ -297,51 +268,55 @@ target_link_libraries(keepassx_core
         ${GPGERROR_LIBRARIES}
         ${ZLIB_LIBRARIES})
 
-if(WITH_XC_SSHAGENT)
-  target_link_libraries(keepassx_core sshagent)
-endif()
-if(WITH_XC_KEESHARE)
-  target_link_libraries(keepassx_core keeshare)
-endif()
-
 if(APPLE)
-    target_link_libraries(keepassx_core "-framework Foundation -framework AppKit")
+    target_link_libraries(keepassxc_core "-framework Foundation -framework AppKit")
     if(Qt5MacExtras_FOUND)
-        target_link_libraries(keepassx_core Qt5::MacExtras)
+        target_link_libraries(keepassxc_core Qt5::MacExtras)
     endif()
     if(WITH_XC_TOUCHID)
-        target_link_libraries(keepassx_core "-framework Security")
-        target_link_libraries(keepassx_core "-framework LocalAuthentication")
+        target_link_libraries(keepassxc_core "-framework Security")
+        target_link_libraries(keepassxc_core "-framework LocalAuthentication")
     endif()
 endif()
 if(HAIKU)
-    target_link_libraries(keepassx_core network)
+    target_link_libraries(keepassxc_core network)
 endif()
 if(UNIX AND NOT APPLE)
-    target_link_libraries(keepassx_core Qt5::DBus)
+    target_link_libraries(keepassxc_core Qt5::DBus)
 endif()
 if(MINGW)
-    target_link_libraries(keepassx_core Wtsapi32.lib Ws2_32.lib)
+    target_link_libraries(keepassxc_core Wtsapi32.lib Ws2_32.lib)
 endif()
 
+# Define KeePassXC main executable
+set(keepassxc_mainexe_SOURCES main.cpp)
+
+# Define WIN32 EXE version information
 if(MINGW)
+    list(APPEND keepassxc_mainexe_SOURCES ${CMAKE_SOURCE_DIR}/share/windows/icon.rc)
     include(GenerateProductVersion)
-    generate_product_version(
-            WIN32_ProductVersionFiles
+    generate_product_version(WIN32_ProductVersionFiles
             NAME "KeePassXC"
             COMPANY_NAME "KeePassXC Team"
             VERSION_MAJOR ${KEEPASSXC_VERSION_MAJOR}
             VERSION_MINOR ${KEEPASSXC_VERSION_MINOR}
-            VERSION_PATCH ${KEEPASSXC_VERSION_PATCH}
-    )
+            VERSION_PATCH ${KEEPASSXC_VERSION_PATCH})
 endif()
 
-add_executable(${PROGNAME} WIN32 ${keepassx_SOURCES_MAINEXE} ${WIN32_ProductVersionFiles})
-target_link_libraries(${PROGNAME} keepassx_core)
-
+add_executable(${PROGNAME} WIN32 ${keepassxc_mainexe_SOURCES} ${WIN32_ProductVersionFiles})
+target_link_libraries(${PROGNAME} keepassxc_core)
 set_target_properties(${PROGNAME} PROPERTIES ENABLE_EXPORTS ON)
 
+install(TARGETS ${PROGNAME}
+        BUNDLE DESTINATION . COMPONENT Runtime
+        RUNTIME DESTINATION ${BIN_INSTALL_DIR} COMPONENT Runtime)
+
+# Define KeePassXC CLI
+add_subdirectory(cli)
+
 if(APPLE AND WITH_APP_BUNDLE)
+    # Define Apple App Bundle
+
     configure_file(${CMAKE_SOURCE_DIR}/share/macosx/Info.plist.cmake ${CMAKE_CURRENT_BINARY_DIR}/Info.plist)
     set_target_properties(${PROGNAME} PROPERTIES
             MACOSX_BUNDLE ON
@@ -372,13 +347,10 @@ if(APPLE AND WITH_APP_BUNDLE)
             COMMAND ${MACDEPLOYQT_EXE} ${PROGNAME}.app
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/src
             COMMENT "Deploying app bundle")
-endif()
 
-install(TARGETS ${PROGNAME}
-        BUNDLE DESTINATION . COMPONENT Runtime
-        RUNTIME DESTINATION ${BIN_INSTALL_DIR} COMPONENT Runtime)
+elseif(MINGW)
+    # Define WIX Installer and Windows Bundle
 
-if(MINGW)
     if(${CMAKE_SIZEOF_VOID_P} EQUAL "8")
         set(OUTPUT_FILE_POSTFIX "Win64")
     else()

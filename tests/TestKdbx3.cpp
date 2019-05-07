@@ -18,7 +18,7 @@
 #include "TestKdbx3.h"
 #include "TestGlobal.h"
 
-#include "config-keepassx-tests.h"
+#include "config-keepassxc-tests.h"
 #include "core/Metadata.h"
 #include "format/KdbxXmlReader.h"
 #include "format/KdbxXmlWriter.h"

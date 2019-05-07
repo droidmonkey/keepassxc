@@ -29,20 +29,12 @@ set(cli_SOURCES
         Remove.cpp
         Show.cpp)
 
+# Shared with cli tests
 add_library(cli STATIC ${cli_SOURCES})
 target_link_libraries(cli Qt5::Core Qt5::Widgets)
 
 add_executable(keepassxc-cli keepassxc-cli.cpp)
-target_link_libraries(keepassxc-cli
-        cli
-        keepassx_core
-        Qt5::Core
-        ${GCRYPT_LIBRARIES}
-        ${sodium_LIBRARY_RELEASE}
-        ${ARGON2_LIBRARIES}
-        ${GPGERROR_LIBRARIES}
-        ${ZLIB_LIBRARIES}
-        ${ZXCVBN_LIBRARIES})
+target_link_libraries(keepassxc-cli keepassxc_core cli)
 
 install(TARGETS keepassxc-cli
         BUNDLE DESTINATION . COMPONENT Runtime

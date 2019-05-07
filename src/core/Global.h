@@ -23,7 +23,7 @@
 #include <QtGlobal>
 
 #if defined(Q_OS_WIN)
-#if defined(KEEPASSX_BUILDING_CORE)
+#if defined(KEEPASSXC_BUILDING_CORE)
 #define KEEPASSX_EXPORT Q_DECL_IMPORT
 #else
 #define KEEPASSX_EXPORT Q_DECL_EXPORT

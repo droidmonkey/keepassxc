@@ -38,7 +38,7 @@
 #include <QToolBar>
 #include <QToolButton>
 
-#include "config-keepassx-tests.h"
+#include "config-keepassxc-tests.h"
 #include "core/Bootstrap.h"
 #include "core/Config.h"
 #include "core/Database.h"

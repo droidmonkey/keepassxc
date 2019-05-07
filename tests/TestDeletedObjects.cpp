@@ -18,7 +18,7 @@
 #include "TestDeletedObjects.h"
 #include "TestGlobal.h"
 
-#include "config-keepassx-tests.h"
+#include "config-keepassxc-tests.h"
 #include "crypto/Crypto.h"
 #include "format/KdbxXmlReader.h"
 #include "format/KeePass2.h"

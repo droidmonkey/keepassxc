@@ -1,4 +1,19 @@
 if(WITH_XC_AUTOTYPE)
+    register_plugin(autotype)
+
+    set(autotype_SOURCES
+        AutoType.cpp
+        AutoTypeAction.cpp
+        AutoTypeFilterLineEdit.cpp
+        AutoTypeSelectDialog.cpp
+        AutoTypeSelectView.cpp
+        ShortcutWidget.cpp
+        WildcardMatcher.cpp
+        WindowSelectComboBox.cpp)
+
+    add_library(autotype STATIC ${autotype_SOURCES})
+    target_link_libraries(autotype keepassxc_core)
+
     if(UNIX AND NOT APPLE AND NOT HAIKU)
         find_package(X11)
         find_package(Qt5X11Extras 5.2)

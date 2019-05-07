@@ -1,5 +1,5 @@
 if(WITH_XC_FDOSECRETS)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+    register_plugin(fdosecrets)
 
     add_library(fdosecrets STATIC
         # app settings page
@@ -30,7 +30,6 @@ if(WITH_XC_FDOSECRETS)
         objects/adaptors/ItemAdaptor.cpp
         objects/adaptors/PromptAdaptor.cpp
         objects/DBusReturn.cpp
-        objects/DBusTypes.cpp
-    )
+        objects/DBusTypes.cpp)
     target_link_libraries(fdosecrets Qt5::Core Qt5::Widgets Qt5::DBus ${GCRYPT_LIBRARIES})
 endif()

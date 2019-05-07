@@ -23,7 +23,7 @@ include_directories(
 add_definitions(-DQT_TEST_LIB)
 
 set(KEEPASSX_TEST_DATA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/data)
-configure_file(config-keepassx-tests.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-keepassx-tests.h)
+configure_file(config-keepassxc-tests.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-keepassxc-tests.h)
 
 macro(parse_arguments prefix arg_names option_names)
     set(DEFAULT_ARGS)
@@ -88,16 +88,8 @@ macro(add_unit_test)
 endmacro(add_unit_test)
 
 set(TEST_LIBRARIES
-        keepassx_core
-        ${keepasshttp_LIB}
-        ${autotype_LIB}
-        Qt5::Core
-        Qt5::Concurrent
-        Qt5::Widgets
-        Qt5::Test
-        ${GCRYPT_LIBRARIES}
-        ${GPGERROR_LIBRARIES}
-        ${ZLIB_LIBRARIES})
+        keepassxc_core
+        Qt5::Test)
 
 set(testsupport_SOURCES
         modeltest.cpp
@@ -107,10 +99,6 @@ set(testsupport_SOURCES
         stub/TestRandom.cpp)
 add_library(testsupport STATIC ${testsupport_SOURCES})
 target_link_libraries(testsupport Qt5::Core Qt5::Concurrent Qt5::Widgets Qt5::Test)
-
-if(YUBIKEY_FOUND)
-    set(TEST_LIBRARIES ${TEST_LIBRARIES} ${YUBIKEY_LIBRARIES})
-endif()
 
 add_unit_test(NAME testgroup SOURCES TestGroup.cpp
         LIBS testsupport ${TEST_LIBRARIES})
@@ -139,11 +127,6 @@ add_unit_test(NAME testcryptohash SOURCES TestCryptoHash.cpp
 add_unit_test(NAME testsymmetriccipher SOURCES TestSymmetricCipher.cpp
         LIBS ${TEST_LIBRARIES})
 
-if(WITH_XC_KEESHARE)
-    add_unit_test(NAME testsignature SOURCES TestSignature.cpp
-            LIBS ${TEST_LIBRARIES})
-endif()
-
 add_unit_test(NAME testhashedblockstream SOURCES TestHashedBlockStream.cpp
         LIBS testsupport ${TEST_LIBRARIES})
 
@@ -160,7 +143,7 @@ add_unit_test(NAME testkeepass1reader SOURCES TestKeePass1Reader.cpp
         LIBS ${TEST_LIBRARIES})
 
 add_unit_test(NAME testopvaultreader SOURCES TestOpVaultReader.cpp
-              LIBS ${TEST_LIBRARIES})
+        LIBS ${TEST_LIBRARIES})
 
 add_unit_test(NAME testwildcardmatcher SOURCES TestWildcardMatcher.cpp
         LIBS ${TEST_LIBRARIES})
@@ -213,6 +196,9 @@ add_unit_test(NAME testykchallengeresponsekey
         LIBS ${TEST_LIBRARIES})
 
 if(WITH_XC_KEESHARE)
+    add_unit_test(NAME testsignature SOURCES TestSignature.cpp
+            LIBS ${TEST_LIBRARIES})
+
     add_unit_test(NAME testsharing SOURCES TestSharing.cpp
 	    LIBS testsupport ${TEST_LIBRARIES})
 endif()
@@ -227,7 +213,6 @@ if(WITH_XC_FDOSECRETS)
     add_unit_test(NAME testfdosecrets SOURCES TestFdoSecrets.cpp
         LIBS testsupport ${TEST_LIBRARIES})
 endif()
-
 
 if(WITH_GUI_TESTS)
     # CLI clip tests need X environment on Linux

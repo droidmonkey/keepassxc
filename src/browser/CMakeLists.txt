@@ -15,22 +15,27 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 if(WITH_XC_BROWSER)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+    register_plugin(browser)
 
-    set(keepassxcbrowser_SOURCES
-            BrowserAccessControlDialog.cpp
-            BrowserAction.cpp
-            BrowserClients.cpp
-            BrowserEntryConfig.cpp
-            BrowserEntrySaveDialog.cpp
-            BrowserOptionDialog.cpp
-            BrowserService.cpp
-            BrowserSettings.cpp
-            HostInstaller.cpp
-            NativeMessagingBase.cpp
-            NativeMessagingHost.cpp
-            Variant.cpp)
+    set(browser_SOURCES
+        BrowserAccessControlDialog.cpp
+        BrowserAction.cpp
+        BrowserClients.cpp
+        BrowserEntryConfig.cpp
+        BrowserEntrySaveDialog.cpp
+        BrowserOptionDialog.cpp
+        BrowserService.cpp
+        BrowserSettings.cpp
+        HostInstaller.cpp
+        NativeMessagingBase.cpp
+        NativeMessagingHost.cpp
+        Variant.cpp)
 
-    add_library(keepassxcbrowser STATIC ${keepassxcbrowser_SOURCES})
-    target_link_libraries(keepassxcbrowser Qt5::Core Qt5::Concurrent Qt5::Widgets Qt5::Network ${sodium_LIBRARY_RELEASE})
+    add_library(browser STATIC ${browser_SOURCES})
+    target_link_libraries(browser
+        Qt5::Core
+        Qt5::Concurrent
+        Qt5::Widgets
+        Qt5::Network
+        ${sodium_LIBRARY_RELEASE})
 endif()

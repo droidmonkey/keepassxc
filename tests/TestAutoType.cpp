@@ -39,7 +39,7 @@ void TestAutoType::initTestCase()
     config()->set("security/autotypeask", false);
     AutoType::createTestInstance();
 
-    QPluginLoader loader(filePath()->pluginPath("keepassx-autotype-test"));
+    QPluginLoader loader(filePath()->pluginPath("keepassxc-autotype-test"));
     loader.setLoadHints(QLibrary::ResolveAllSymbolsHint);
     QVERIFY(loader.instance());
 

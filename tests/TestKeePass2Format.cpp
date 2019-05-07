@@ -25,7 +25,7 @@
 #include "keys/PasswordKey.h"
 
 #include "FailDevice.h"
-#include "config-keepassx-tests.h"
+#include "config-keepassxc-tests.h"
 
 void TestKeePass2Format::initTestCase()
 {

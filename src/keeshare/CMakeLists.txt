@@ -1,4 +1,6 @@
 if(WITH_XC_KEESHARE)
+    register_plugin(keeshare)
+
     set(WITH_XC_KEESHARE_INSECURE ON PARENT_SCOPE)
 
     include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})

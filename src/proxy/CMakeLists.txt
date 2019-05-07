@@ -15,18 +15,18 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 if(WITH_XC_BROWSER)
-    include_directories(${BROWSER_SOURCE_DIR})
-
     set(proxy_SOURCES
-        ../core/Alloc.cpp
         keepassxc-proxy.cpp
-        ${BROWSER_SOURCE_DIR}/NativeMessagingBase.cpp
+        ../core/Alloc.cpp
+        ../browser/NativeMessagingBase.cpp
         NativeMessagingHost.cpp)
 
-    add_library(proxy STATIC ${proxy_SOURCES})
-    target_link_libraries(proxy Qt5::Core Qt5::Network ${sodium_LIBRARY_RELEASE})
-    add_executable(keepassxc-proxy keepassxc-proxy.cpp)
-    target_link_libraries(keepassxc-proxy proxy)
+    add_executable(keepassxc-proxy ${proxy_SOURCES})
+    target_include_directories(keepassxc-proxy PRIVATE ../browser)
+    target_link_libraries(keepassxc-proxy Qt5::Core Qt5::Network ${sodium_LIBRARY_RELEASE})
+    if(MINGW)
+        target_link_libraries(keepassxc-proxy Wtsapi32.lib Ws2_32.lib)
+    endif()
 
     install(TARGETS keepassxc-proxy
             BUNDLE DESTINATION . COMPONENT Runtime
@@ -53,8 +53,5 @@ if(WITH_XC_BROWSER)
                            POST_BUILD
                            COMMAND ${CMAKE_COMMAND} -E copy keepassxc-proxy ${PROXY_APP_DIR}/keepassxc-proxy
                            COMMENT "Copying keepassxc-proxy inside the application")
-    endif()
-    if(MINGW)
-      target_link_libraries(keepassxc-proxy Wtsapi32.lib Ws2_32.lib)
     endif()
 endif()

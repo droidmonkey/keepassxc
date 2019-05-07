@@ -310,7 +310,7 @@ if(MINGW)
     endif()
 endif()
 
-if(APPLE AND WITH_APP_BUNDLE OR MINGW)
+if((APPLE AND WITH_APP_BUNDLE) OR MINGW)
     set(PROGNAME KeePassXC)
 else()
     set(PROGNAME keepassxc)

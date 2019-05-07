@@ -17,7 +17,7 @@
 
 #include "TestOpVaultReader.h"
 
-#include "config-keepassx-tests.h"
+#include "config-keepassxc-tests.h"
 #include "core/Database.h"
 #include "core/Group.h"
 #include "core/Metadata.h"

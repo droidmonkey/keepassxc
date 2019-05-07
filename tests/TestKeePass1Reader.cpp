@@ -20,7 +20,7 @@
 
 #include <QBuffer>
 
-#include "config-keepassx-tests.h"
+#include "config-keepassxc-tests.h"
 #include "core/Metadata.h"
 #include "crypto/Crypto.h"
 #include "format/KeePass1Reader.h"

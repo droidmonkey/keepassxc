@@ -52,7 +52,7 @@ AutoType::AutoType(QObject* parent, bool test)
     // prevent crash when the plugin has unresolved symbols
     m_pluginLoader->setLoadHints(QLibrary::ResolveAllSymbolsHint);
 
-    QString pluginName = "keepassx-autotype-";
+    QString pluginName = "keepassxc-autotype-";
     if (!test) {
         pluginName += QApplication::platformName();
     } else {
