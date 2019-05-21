@@ -309,13 +309,13 @@ void TestModified::testEntrySets()
     entry->setDefaultAutoTypeSequence(entry->defaultAutoTypeSequence());
     QTRY_COMPARE(spyModified.count(), spyCount);
 
-    entry->setForegroundColor(Qt::red);
+    entry->setForegroundColor("#FF0000");
     ++spyCount;
     QTRY_COMPARE(spyModified.count(), spyCount);
     entry->setForegroundColor(entry->foregroundColor());
     QTRY_COMPARE(spyModified.count(), spyCount);
 
-    entry->setBackgroundColor(Qt::red);
+    entry->setBackgroundColor("#FF0000");
     ++spyCount;
     QTRY_COMPARE(spyModified.count(), spyCount);
     entry->setBackgroundColor(entry->backgroundColor());

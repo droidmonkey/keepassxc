@@ -1047,7 +1047,7 @@ QDateTime KdbxXmlReader::readDateTime()
     return Clock::currentDateTimeUtc();
 }
 
-QColor KdbxXmlReader::readColor()
+QString KdbxXmlReader::readColor()
 {
     QString colorStr = readString();
 
@@ -1062,28 +1062,7 @@ QColor KdbxXmlReader::readColor()
         return {};
     }
 
-    QColor color;
-    for (int i = 0; i <= 2; ++i) {
-        QString rgbPartStr = colorStr.mid(1 + 2 * i, 2);
-        bool ok;
-        int rgbPart = rgbPartStr.toInt(&ok, 16);
-        if (!ok || rgbPart > 255) {
-            if (m_strictMode) {
-                raiseError(tr("Invalid color rgb part"));
-            }
-            return {};
-        }
-
-        if (i == 0) {
-            color.setRed(rgbPart);
-        } else if (i == 1) {
-            color.setGreen(rgbPart);
-        } else {
-            color.setBlue(rgbPart);
-        }
-    }
-
-    return color;
+    return colorStr;
 }
 
 int KdbxXmlReader::readNumber()

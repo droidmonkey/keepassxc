@@ -532,16 +532,11 @@ void KdbxXmlWriter::writeBinary(const QString& qualifiedName, const QByteArray& 
     writeString(qualifiedName, QString::fromLatin1(ba.toBase64()));
 }
 
-void KdbxXmlWriter::writeColor(const QString& qualifiedName, const QColor& color)
+void KdbxXmlWriter::writeColor(const QString& qualifiedName, const QString& color)
 {
-    QString colorStr;
-
-    if (color.isValid()) {
-        colorStr = QString("#%1%2%3").arg(
-            colorPartToString(color.red()), colorPartToString(color.green()), colorPartToString(color.blue()));
+    if (color.size() == 7 && color.startsWith("#")) {
+        writeString(qualifiedName, color);
     }
-
-    writeString(qualifiedName, colorStr);
 }
 
 void KdbxXmlWriter::writeTriState(const QString& qualifiedName, Group::TriState triState)

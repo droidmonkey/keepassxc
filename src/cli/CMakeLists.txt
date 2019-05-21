@@ -31,7 +31,7 @@ set(cli_SOURCES
 
 # Shared with cli tests
 add_library(cli STATIC ${cli_SOURCES})
-target_link_libraries(cli Qt5::Core Qt5::Widgets)
+target_link_libraries(cli Qt5::Core)
 
 add_executable(keepassxc-cli keepassxc-cli.cpp)
 target_link_libraries(keepassxc-cli keepassxc_core cli)

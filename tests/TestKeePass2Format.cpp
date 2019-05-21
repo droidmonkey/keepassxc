@@ -84,7 +84,7 @@ void TestKeePass2Format::testXmlMetadata()
     QCOMPARE(m_xmlDb->metadata()->defaultUserName(), QString("DEFUSERNAME"));
     QCOMPARE(m_xmlDb->metadata()->defaultUserNameChanged(), MockClock::datetimeUtc(2010, 8, 8, 17, 27, 45));
     QCOMPARE(m_xmlDb->metadata()->maintenanceHistoryDays(), 127);
-    QCOMPARE(m_xmlDb->metadata()->color(), QColor(0xff, 0xef, 0x00));
+    QCOMPARE(m_xmlDb->metadata()->color().toUpper(), "#FFEF00");
     QCOMPARE(m_xmlDb->metadata()->masterKeyChanged(), MockClock::datetimeUtc(2012, 4, 5, 17, 9, 34));
     QCOMPARE(m_xmlDb->metadata()->masterKeyChangeRec(), 101);
     QCOMPARE(m_xmlDb->metadata()->masterKeyChangeForce(), -1);
@@ -198,8 +198,8 @@ void TestKeePass2Format::testXmlEntry1()
     QCOMPARE(entry->historyItems().size(), 2);
     QCOMPARE(entry->iconNumber(), 0);
     QCOMPARE(entry->iconUuid(), QUuid());
-    QVERIFY(!entry->foregroundColor().isValid());
-    QVERIFY(!entry->backgroundColor().isValid());
+    QVERIFY(entry->foregroundColor().isEmpty());
+    QVERIFY(entry->backgroundColor().isEmpty());
     QCOMPARE(entry->overrideUrl(), QString(""));
     QCOMPARE(entry->tags(), QString("a b c"));
 
@@ -260,8 +260,8 @@ void TestKeePass2Format::testXmlEntry2()
     QCOMPARE(entry->iconNumber(), 0);
     QCOMPARE(entry->iconUuid(), QUuid::fromRfc4122(QByteArray::fromBase64("++vyI+daLk6omox4a6kQGA==")));
     // TODO: test entry->icon()
-    QCOMPARE(entry->foregroundColor(), QColor(255, 0, 0));
-    QCOMPARE(entry->backgroundColor(), QColor(255, 255, 0));
+    QCOMPARE(QColor(entry->foregroundColor()), QColor(255, 0, 0));
+    QCOMPARE(QColor(entry->backgroundColor()), QColor(255, 255, 0));
     QCOMPARE(entry->overrideUrl(), QString("http://override.net/"));
     QCOMPARE(entry->tags(), QString(""));
 

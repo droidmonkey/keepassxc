@@ -275,16 +275,16 @@ QVariant EntryModel::data(const QModelIndex& index, int role) const
             QPalette p;
 #ifdef Q_OS_MACOS
             if (macUtils()->isDarkMode()) {
-                return QVariant(p.color(QPalette::Inactive, QPalette::Dark));
+                return p.color(QPalette::Inactive, QPalette::Dark);
             }
 #endif
-            return QVariant(p.color(QPalette::Active, QPalette::Mid));
-        } else if (entry->foregroundColor().isValid()) {
-            return QVariant(entry->foregroundColor());
+            return p.color(QPalette::Active, QPalette::Mid);
+        } else if (!entry->foregroundColor().isEmpty()) {
+            return QColor(entry->foregroundColor());
         }
     } else if (role == Qt::BackgroundRole) {
-        if (entry->backgroundColor().isValid()) {
-            return QVariant(entry->backgroundColor());
+        if (!entry->backgroundColor().isEmpty()) {
+            return QColor(entry->backgroundColor());
         }
     } else if (role == Qt::TextAlignmentRole) {
         if (index.column() == Paperclip) {

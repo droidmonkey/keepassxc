@@ -208,12 +208,12 @@ const QUuid& Entry::iconUuid() const
     return m_data.customIcon;
 }
 
-QColor Entry::foregroundColor() const
+QString Entry::foregroundColor() const
 {
     return m_data.foregroundColor;
 }
 
-QColor Entry::backgroundColor() const
+QString Entry::backgroundColor() const
 {
     return m_data.backgroundColor;
 }
@@ -493,12 +493,12 @@ void Entry::setIcon(const QUuid& uuid)
     }
 }
 
-void Entry::setForegroundColor(const QColor& color)
+void Entry::setForegroundColor(const QString& color)
 {
     set(m_data.foregroundColor, color);
 }
 
-void Entry::setBackgroundColor(const QColor& color)
+void Entry::setBackgroundColor(const QString& color)
 {
     set(m_data.backgroundColor, color);
 }

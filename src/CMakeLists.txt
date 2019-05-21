@@ -27,7 +27,6 @@ set(keepassxc_core_SOURCES
         core/Alloc.cpp
         core/AutoTypeAssociations.cpp
         core/AutoTypeMatch.cpp
-        core/Compare.cpp
         core/Config.cpp
         core/CsvParser.cpp
         core/CustomData.cpp
