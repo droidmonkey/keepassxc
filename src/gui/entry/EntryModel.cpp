@@ -25,7 +25,7 @@
 #include <QPalette>
 
 #include "core/Config.h"
-#include "core/DatabaseIcons.h"
+#include "gui/DatabaseIcons.h"
 #include "core/Entry.h"
 #include "core/Global.h"
 #include "core/Group.h"

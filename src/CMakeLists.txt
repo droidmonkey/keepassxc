@@ -31,7 +31,7 @@ set(keepassxc_core_SOURCES
         core/CsvParser.cpp
         core/CustomData.cpp
         core/Database.cpp
-        core/DatabaseIcons.cpp
+        gui/DatabaseIcons.cpp
         core/Entry.cpp
         core/EntryAttachments.cpp
         core/EntryAttributes.cpp

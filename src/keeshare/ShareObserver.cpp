@@ -21,7 +21,7 @@
 #include "core/Config.h"
 #include "core/CustomData.h"
 #include "core/Database.h"
-#include "core/DatabaseIcons.h"
+#include "gui/DatabaseIcons.h"
 #include "core/Entry.h"
 #include "core/FilePath.h"
 #include "core/FileWatcher.h"

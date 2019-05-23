@@ -17,7 +17,7 @@
 
 #include "TestGuiPixmaps.h"
 #include "TestGlobal.h"
-#include "core/DatabaseIcons.h"
+#include "gui/DatabaseIcons.h"
 #include "core/Metadata.h"
 #include "crypto/Crypto.h"
 

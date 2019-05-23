@@ -18,7 +18,7 @@
 #include "KdbxXmlReader.h"
 #include "KeePass2RandomStream.h"
 #include "core/Clock.h"
-#include "core/DatabaseIcons.h"
+#include "gui/DatabaseIcons.h"
 #include "core/Endian.h"
 #include "core/Entry.h"
 #include "core/Global.h"

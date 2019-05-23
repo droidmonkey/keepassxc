@@ -20,7 +20,7 @@
 
 #include <QSignalSpy>
 
-#include "core/DatabaseIcons.h"
+#include "gui/DatabaseIcons.h"
 #include "core/Entry.h"
 #include "core/Group.h"
 #include "crypto/Crypto.h"

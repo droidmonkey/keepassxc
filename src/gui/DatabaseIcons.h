@@ -18,19 +18,18 @@
 #ifndef KEEPASSX_DATABASEICONS_H
 #define KEEPASSX_DATABASEICONS_H
 
-#include <QImage>
+#include <QHash>
 #include <QPixmap>
-#include <QPixmapCache>
-#include <QVector>
+#include <QUuid>
 
 class DatabaseIcons
 {
 public:
-    QImage icon(int index);
-    QPixmap iconPixmap(int index);
+    QPixmap icon(QUuid database, QUuid icon);
 
     static DatabaseIcons* instance();
 
+    static const QUuid CommonIconsUuid;
     static const int IconCount;
     static const int ExpiredIconIndex;
     static const int SharedIconIndex;
@@ -40,10 +39,9 @@ private:
     DatabaseIcons();
 
     static DatabaseIcons* m_instance;
+    static const QList<QPair<QUuid, QString>> m_commonIcons;
 
-    static const char* const m_indexToName[];
-    QVector<QImage> m_iconCache;
-    QVector<QPixmapCache::Key> m_pixmapCacheKeys;
+    QHash<QUuid, QHash<QUuid, QPixmap>> m_icons;
 
     Q_DISABLE_COPY(DatabaseIcons)
 };

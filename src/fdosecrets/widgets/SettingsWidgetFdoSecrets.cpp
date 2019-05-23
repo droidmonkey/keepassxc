@@ -24,7 +24,7 @@
 #include "fdosecrets/objects/Prompt.h"
 #include "fdosecrets/objects/Session.h"
 
-#include "core/DatabaseIcons.h"
+#include "gui/DatabaseIcons.h"
 #include "core/FilePath.h"
 #include "gui/DatabaseWidget.h"
 

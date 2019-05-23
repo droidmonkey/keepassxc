@@ -20,7 +20,7 @@
 
 #include "core/Clock.h"
 #include "core/Config.h"
-#include "core/DatabaseIcons.h"
+#include "gui/DatabaseIcons.h"
 #include "core/Global.h"
 #include "core/Metadata.h"
 #include "core/Tools.h"
