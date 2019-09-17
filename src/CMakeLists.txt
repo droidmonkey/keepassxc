@@ -379,11 +379,22 @@ if(APPLE AND WITH_APP_BUNDLE)
     set(CPACK_PACKAGE_FILE_NAME "${PROGNAME}-${KEEPASSXC_VERSION}")
     include(CPack)
 
+    # Use windeployqt.exe to setup Qt dependencies
+    set(MACDEPLOYQT_MODE "--release")
+    if(CMAKE_BUILD_TYPE_LOWER STREQUAL "debug")
+        set(MACDEPLOYQT_MODE "--debug")
+    endif()
+
     add_custom_command(TARGET ${PROGNAME}
             POST_BUILD
-            COMMAND ${MACDEPLOYQT_EXE} ${PROGNAME}.app
+            COMMAND ${MACDEPLOYQT_EXE} ${PROGNAME}.app ${MACDEPLOYQT_MODE}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/src
+            OUTPUT_QUIET
             COMMENT "Deploying app bundle")
+
+    install(CODE "include(BundleUtilities)
+                  fixup_bundle(\"\${CMAKE_BINARY_DIR}/src/${PROGNAME}.app\" \"\" \"\")"
+            COMPONENT Runtime)
 endif()
 
 install(TARGETS ${PROGNAME}

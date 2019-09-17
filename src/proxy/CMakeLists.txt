@@ -33,22 +33,6 @@ if(WITH_XC_BROWSER)
             RUNTIME DESTINATION ${PROXY_INSTALL_DIR} COMPONENT Runtime)
 
     if(APPLE AND WITH_APP_BUNDLE)
-        add_custom_command(TARGET keepassxc-proxy
-                           POST_BUILD
-                           COMMAND ${CMAKE_INSTALL_NAME_TOOL}
-                                -change ${Qt5_PREFIX}/lib/QtCore.framework/Versions/5/QtCore
-                                    "@executable_path/../Frameworks/QtCore.framework/Versions/5/QtCore"
-                                -change /usr/local/opt/qt/lib/QtCore.framework/Versions/5/QtCore
-                                    "@executable_path/../Frameworks/QtCore.framework/Versions/5/QtCore"
-                                -change ${Qt5_PREFIX}/lib/QtNetwork.framework/Versions/5/QtNetwork
-                                    "@executable_path/../Frameworks/QtNetwork.framework/Versions/5/QtNetwork"
-                                -change /usr/local/opt/qt/lib/QtNetwork.framework/Versions/5/QtNetwork
-                                    "@executable_path/../Frameworks/QtNetwork.framework/Versions/5/QtNetwork"
-                                -change /usr/local/opt/libsodium/lib/libsodium.23.dylib
-                                    "@executable_path/../Frameworks/libsodium.23.dylib"
-                           keepassxc-proxy
-                           COMMENT "Changing linking of keepassxc-proxy")
-
         # Copy app to staging directory for pre-install testing
         set(PROXY_APP_DIR "${CMAKE_BINARY_DIR}/src/${PROXY_INSTALL_DIR}")
         add_custom_command(TARGET keepassxc-proxy
