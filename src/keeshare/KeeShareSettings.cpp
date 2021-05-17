@@ -266,82 +266,6 @@ namespace KeeShareSettings
         return own;
     }
 
-    bool ScopedCertificate::operator==(const ScopedCertificate& other) const
-    {
-        return trust == other.trust && path == other.path && certificate == other.certificate;
-    }
-
-    bool ScopedCertificate::operator!=(const ScopedCertificate& other) const
-    {
-        return !operator==(other);
-    }
-
-    void ScopedCertificate::serialize(QXmlStreamWriter& writer, const ScopedCertificate& scopedCertificate)
-    {
-        writer.writeAttribute("Path", scopedCertificate.path);
-        QString trust = "Ask";
-        if (scopedCertificate.trust == KeeShareSettings::Trust::Trusted) {
-            trust = "Trusted";
-        }
-        if (scopedCertificate.trust == KeeShareSettings::Trust::Untrusted) {
-            trust = "Untrusted";
-        }
-        writer.writeAttribute("Trust", trust);
-        Certificate::serialize(writer, scopedCertificate.certificate);
-    }
-
-    ScopedCertificate ScopedCertificate::deserialize(QXmlStreamReader& reader)
-    {
-        ScopedCertificate scopedCertificate;
-        scopedCertificate.path = reader.attributes().value("Path").toString();
-        scopedCertificate.trust = KeeShareSettings::Trust::Ask;
-        auto trust = reader.attributes().value("Trust").toString();
-        if (trust.compare("Trusted", Qt::CaseInsensitive) == 0) {
-            scopedCertificate.trust = KeeShareSettings::Trust::Trusted;
-        }
-        if (trust.compare("Untrusted", Qt::CaseInsensitive) == 0) {
-            scopedCertificate.trust = KeeShareSettings::Trust::Untrusted;
-        }
-        scopedCertificate.certificate = Certificate::deserialize(reader);
-        return scopedCertificate;
-    }
-
-    QString Foreign::serialize(const Foreign& foreign)
-    {
-        return xmlSerialize([&](QXmlStreamWriter& writer) {
-            writer.writeStartElement("Foreign");
-            for (const ScopedCertificate& scopedCertificate : foreign.certificates) {
-                writer.writeStartElement("Certificate");
-                ScopedCertificate::serialize(writer, scopedCertificate);
-                writer.writeEndElement();
-            }
-            writer.writeEndElement();
-        });
-    }
-
-    Foreign Foreign::deserialize(const QString& raw)
-    {
-        Foreign foreign;
-        xmlDeserialize(raw, [&](QXmlStreamReader& reader) {
-            while (!reader.error() && reader.readNextStartElement()) {
-                if (reader.name() == "Foreign") {
-                    while (!reader.error() && reader.readNextStartElement()) {
-                        if (reader.name() == "Certificate") {
-                            foreign.certificates << ScopedCertificate::deserialize(reader);
-                        } else {
-                            qWarning("Unknown Certificates element %s", qPrintable(reader.name().toString()));
-                            reader.skipCurrentElement();
-                        }
-                    }
-                } else {
-                    qWarning("Unknown KeeShareSettings element %s", qPrintable(reader.name().toString()));
-                    reader.skipCurrentElement();
-                }
-            }
-        });
-        return foreign;
-    }
-
     Reference::Reference()
         : type(Inactive)
         , uuid(QUuid::createUuid())
@@ -446,23 +370,5 @@ namespace KeeShareSettings
             Certificate::serialize(writer, sign.certificate);
             writer.writeEndElement();
         });
-    }
-
-    Sign Sign::deserialize(const QString& raw)
-    {
-        Sign sign;
-        xmlDeserialize(raw, [&](QXmlStreamReader& reader) {
-            while (!reader.error() && reader.readNextStartElement()) {
-                if (reader.name() == "Signature") {
-                    sign.signature = reader.readElementText();
-                } else if (reader.name() == "Certificate") {
-                    sign.certificate = KeeShareSettings::Certificate::deserialize(reader);
-                } else {
-                    qWarning("Unknown Sign element %s", qPrintable(reader.name().toString()));
-                    reader.skipCurrentElement();
-                }
-            }
-        });
-        return sign;
     }
 } // namespace KeeShareSettings

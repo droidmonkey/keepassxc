@@ -15,21 +15,16 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "ShareExport.h"
-#include "config-keepassx.h"
 #include "core/Group.h"
 #include "core/Metadata.h"
 #include "format/KeePass2Writer.h"
+#include "gui/MessageBox.h"
 #include "keeshare/KeeShare.h"
 #include "keeshare/Signature.h"
 #include "keys/PasswordKey.h"
 
 #include <QBuffer>
-#include <QTextStream>
-
-#if defined(WITH_XC_KEESHARE_SECURE)
-#include <quazip.h>
-#include <quazipfile.h>
-#endif
+#include <zip.h>
 
 namespace
 {
@@ -63,8 +58,6 @@ namespace
         auto* targetDb = new Database();
         auto* targetMetadata = targetDb->metadata();
         targetMetadata->setRecycleBinEnabled(false);
-        auto key = QSharedPointer<CompositeKey>::create();
-        key->addKey(QSharedPointer<PasswordKey>::create(reference.password));
 
         // Copy the source root as the root of the export database, memory manage the old root node
         auto* targetRoot = sourceRoot->clone(Entry::CloneNoFlags, Group::CloneNoFlags);
@@ -85,7 +78,10 @@ namespace
             }
         }
 
+        auto key = QSharedPointer<CompositeKey>::create();
+        key->addKey(QSharedPointer<PasswordKey>::create(reference.password));
         targetDb->setKey(key);
+
         auto* obsoleteRoot = targetDb->rootGroup();
         targetDb->setRootGroup(targetRoot);
         delete obsoleteRoot;
@@ -107,124 +103,85 @@ namespace
         return targetDb;
     }
 
-    ShareObserver::Result
-    intoSignedContainer(const QString& resolvedPath, const KeeShareSettings::Reference& reference, Database* targetDb)
+    bool writeZipFile(void* zf, const QString& fileName, const QByteArray& data)
     {
-#if !defined(WITH_XC_KEESHARE_SECURE)
-        Q_UNUSED(targetDb);
-        Q_UNUSED(resolvedPath);
-        return {reference.path,
-                ShareObserver::Result::Warning,
-                ShareExport::tr("Overwriting signed share container is not supported - export prevented")};
-#else
-        QByteArray bytes;
-        {
-            QBuffer buffer(&bytes);
-            buffer.open(QIODevice::WriteOnly);
-            KeePass2Writer writer;
-            writer.writeDatabase(&buffer, targetDb);
-            if (writer.hasError()) {
-                qWarning("Serializing export dabase failed: %s.", writer.errorString().toLatin1().data());
-                return {reference.path, ShareObserver::Result::Error, writer.errorString()};
-            }
-        }
-        const auto own = KeeShare::own();
-        QuaZip zip(resolvedPath);
-        zip.setFileNameCodec("UTF-8");
-        const bool zipOpened = zip.open(QuaZip::mdCreate);
-        if (!zipOpened) {
-            ::qWarning("Opening export file failed: %d", zip.getZipError());
-            return {reference.path,
-                    ShareObserver::Result::Error,
-                    ShareExport::tr("Could not write export container (%1)").arg(zip.getZipError())};
-        }
-        {
-            QuaZipFile file(&zip);
-            const auto signatureOpened = file.open(QIODevice::WriteOnly, QuaZipNewInfo(KeeShare::signatureFileName()));
-            if (!signatureOpened) {
-                ::qWarning("Embedding signature failed: Could not open file to write (%d)", zip.getZipError());
-                return {reference.path,
-                        ShareObserver::Result::Error,
-                        ShareExport::tr("Could not embed signature: Could not open file to write (%1)")
-                            .arg(file.getZipError())};
-            }
-            QTextStream stream(&file);
-            KeeShareSettings::Sign sign;
-            // TODO: check for false return
-            Signature::create(bytes, own.key.key, sign.signature);
-            sign.certificate = own.certificate;
-            stream << KeeShareSettings::Sign::serialize(sign);
-            stream.flush();
-            if (file.getZipError() != ZIP_OK) {
-                ::qWarning("Embedding signature failed: Could not write file (%d)", zip.getZipError());
-                return {
-                    reference.path,
-                    ShareObserver::Result::Error,
-                    ShareExport::tr("Could not embed signature: Could not write file (%1)").arg(file.getZipError())};
-            }
-            file.close();
-        }
-        {
-            QuaZipFile file(&zip);
-            const auto dbOpened = file.open(QIODevice::WriteOnly, QuaZipNewInfo(KeeShare::containerFileName()));
-            if (!dbOpened) {
-                ::qWarning("Embedding database failed: Could not open file to write (%d)", zip.getZipError());
-                return {reference.path,
-                        ShareObserver::Result::Error,
-                        ShareExport::tr("Could not embed database: Could not open file to write (%1)")
-                            .arg(file.getZipError())};
-            }
-            file.write(bytes);
-            if (file.getZipError() != ZIP_OK) {
-                ::qWarning("Embedding database failed: Could not write file (%d)", zip.getZipError());
-                return {reference.path,
-                        ShareObserver::Result::Error,
-                        ShareExport::tr("Could not embed database: Could not write file (%1)").arg(file.getZipError())};
-            }
-            file.close();
-        }
-        zip.close();
-        return {reference.path};
-#endif
-    }
+        zipOpenNewFileInZip64(zf,
+                              fileName.toLatin1().data(),
+                              nullptr,
+                              nullptr,
+                              0,
+                              nullptr,
+                              0,
+                              nullptr,
+                              Z_DEFLATED,
+                              Z_DEFAULT_COMPRESSION,
+                              1);
+        int pos = 0;
+        do {
+            auto len = qMin(data.size() - pos, 8192);
+            zipWriteInFileInZip(zf, data.data() + pos, len);
+            pos += len;
+        } while (pos < data.size());
 
-    ShareObserver::Result
-    intoUnsignedContainer(const QString& resolvedPath, const KeeShareSettings::Reference& reference, Database* targetDb)
-    {
-#if !defined(WITH_XC_KEESHARE_INSECURE)
-        Q_UNUSED(targetDb);
-        Q_UNUSED(resolvedPath);
-        return {reference.path,
-                ShareObserver::Result::Warning,
-                ShareExport::tr("Overwriting unsigned share container is not supported - export prevented")};
-#else
-        QFile file(resolvedPath);
-        const bool fileOpened = file.open(QIODevice::WriteOnly);
-        if (!fileOpened) {
-            ::qWarning("Opening export file failed");
-            return {reference.path, ShareObserver::Result::Error, ShareExport::tr("Could not write export container")};
-        }
-        KeePass2Writer writer;
-        writer.writeDatabase(&file, targetDb);
-        if (writer.hasError()) {
-            qWarning("Exporting dabase failed: %s.", writer.errorString().toLatin1().data());
-            return {reference.path, ShareObserver::Result::Error, writer.errorString()};
-        }
-        file.close();
-#endif
-        return {reference.path};
+        zipCloseFileInZip(zf);
+        return true;
     }
-
 } // namespace
 
 ShareObserver::Result ShareExport::intoContainer(const QString& resolvedPath,
                                                  const KeeShareSettings::Reference& reference,
                                                  const Group* group)
 {
-    QScopedPointer<Database> targetDb(extractIntoDatabase(reference, group));
-    const QFileInfo info(resolvedPath);
-    if (KeeShare::isContainerType(info, KeeShare::signedContainerFileType())) {
-        return intoSignedContainer(resolvedPath, reference, targetDb.data());
+    QFile file(resolvedPath);
+    const bool fileOpened = file.open(QIODevice::WriteOnly);
+    if (!fileOpened) {
+        qWarning("Opening export file failed");
+        return {resolvedPath, ShareObserver::Result::Error, file.errorString()};
     }
-    return intoUnsignedContainer(resolvedPath, reference, targetDb.data());
+
+    QScopedPointer<Database> targetDb(extractIntoDatabase(reference, group));
+    if (resolvedPath.endsWith(".kdbx.share")) {
+        // Write database to memory and sign it
+        QByteArray dbData, signData;
+        QBuffer buffer;
+
+        buffer.setBuffer(&dbData);
+        buffer.open(QIODevice::WriteOnly);
+
+        KeePass2Writer writer;
+        if (!writer.writeDatabase(&buffer, targetDb.data())) {
+            qWarning("Serializing export dabase failed: %s.", writer.errorString().toLatin1().data());
+            return {reference.path, ShareObserver::Result::Error, writer.errorString()};
+        }
+
+        buffer.close();
+
+        // Get Own Certificate for signing
+        const auto own = KeeShare::own();
+        Q_ASSERT(!own.isNull());
+
+        // Sign the database data
+        KeeShareSettings::Sign sign;
+        Signature::create(dbData, own.key.key, sign.signature);
+        sign.certificate = own.certificate;
+        signData = KeeShareSettings::Sign::serialize(sign).toLatin1();
+
+        auto zf = zipOpen64(resolvedPath.toLatin1().data(), 0);
+        if (!zf) {
+            return {reference.path, ShareObserver::Result::Error, ShareExport::tr("Could not write export container.")};
+        }
+
+        writeZipFile(zf, KeeShare::signatureFileName().toLatin1().data(), signData);
+        writeZipFile(zf, KeeShare::containerFileName().toLatin1().data(), dbData);
+
+        zipClose(zf, nullptr);
+    } else {
+        QString error;
+        if (!targetDb->saveAs(resolvedPath, &error)) {
+            qWarning("Exporting dabase failed: %s.", error.toLatin1().data());
+            return {resolvedPath, ShareObserver::Result::Error, error};
+        }
+    }
+
+    return {resolvedPath};
 }

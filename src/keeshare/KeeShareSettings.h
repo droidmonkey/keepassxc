@@ -57,7 +57,6 @@ namespace KeeShareSettings
         bool operator!=(const Key& other) const;
 
         bool isNull() const;
-        QString privateKey() const;
 
         static void serialize(QXmlStreamWriter& writer, const Key& key);
         static Key deserialize(QXmlStreamReader& reader);
@@ -99,42 +98,6 @@ namespace KeeShareSettings
         static QString serialize(const Own& own);
         static Own deserialize(const QString& raw);
         static Own generate();
-    };
-
-    enum class Trust
-    {
-        Ask,
-        Untrusted,
-        Trusted
-    };
-    struct ScopedCertificate
-    {
-        QString path;
-        Certificate certificate;
-        Trust trust;
-
-        bool operator==(const ScopedCertificate& other) const;
-        bool operator!=(const ScopedCertificate& other) const;
-
-        bool isUnknown() const
-        {
-            return certificate.isNull();
-        }
-        bool isKnown() const
-        {
-            return !certificate.isNull();
-        }
-
-        static void serialize(QXmlStreamWriter& writer, const ScopedCertificate& certificate);
-        static ScopedCertificate deserialize(QXmlStreamReader& reader);
-    };
-
-    struct Foreign
-    {
-        QList<ScopedCertificate> certificates;
-
-        static QString serialize(const Foreign& foreign);
-        static Foreign deserialize(const QString& raw);
     };
 
     struct Sign

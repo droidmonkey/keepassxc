@@ -58,22 +58,18 @@ void KeeShare::init(QObject* parent)
 
 KeeShareSettings::Own KeeShare::own()
 {
-    return KeeShareSettings::Own::deserialize(config()->get(Config::KeeShare_Own).toString());
+    // Read existing own certificate or generate a new one if none available
+    auto own = KeeShareSettings::Own::deserialize(config()->get(Config::KeeShare_Own).toString());
+    if (own.key.isNull()) {
+        own = KeeShareSettings::Own::generate();
+        setOwn(own);
+    }
+    return own;
 }
 
 KeeShareSettings::Active KeeShare::active()
 {
     return KeeShareSettings::Active::deserialize(config()->get(Config::KeeShare_Active).toString());
-}
-
-KeeShareSettings::Foreign KeeShare::foreign()
-{
-    return KeeShareSettings::Foreign::deserialize(config()->get(Config::KeeShare_Foreign).toString());
-}
-
-void KeeShare::setForeign(const KeeShareSettings::Foreign& foreign)
-{
-    config()->set(Config::KeeShare_Foreign, KeeShareSettings::Foreign::serialize(foreign));
 }
 
 void KeeShare::setActive(const KeeShareSettings::Active& active)
