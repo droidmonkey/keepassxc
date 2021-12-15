@@ -46,10 +46,10 @@ void DatabaseSettingsWidgetKeeShare::loadSettings(QSharedPointer<Database> db)
                                                                << tr("Last Signer") << tr("Certificates"));
     const QList<Group*> groups = db->rootGroup()->groupsRecursive(true);
     for (const Group* group : groups) {
-        if (!KeeShare::isShared(group)) {
+        if (!KeeShareSettings::isShared(group)) {
             continue;
         }
-        const KeeShareSettings::Reference reference = KeeShare::referenceOf(group);
+        const auto reference = KeeShare::referenceOf(group);
 
         QStringList hierarchy = group->hierarchy();
         hierarchy.removeFirst();

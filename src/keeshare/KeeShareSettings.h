@@ -26,6 +26,7 @@ namespace Botan
     class Private_Key;
 }
 
+class Group;
 class CustomData;
 class QXmlStreamWriter;
 class QXmlStreamReader;
@@ -132,12 +133,13 @@ namespace KeeShareSettings
         bool isValid() const;
         bool isExporting() const;
         bool isImporting() const;
-        bool operator<(const Reference& other) const;
         bool operator==(const Reference& other) const;
-
-        static QString serialize(const Reference& reference);
-        static Reference deserialize(const QString& raw);
     };
+
+    bool isShared(const Group* group);
+
+    Reference readReference(const Group* group);
+    void writeReference(Group* group, const Reference& reference);
 }; // namespace KeeShareSettings
 
 #endif // KEEPASSXC_KEESHARESETTINGS_H

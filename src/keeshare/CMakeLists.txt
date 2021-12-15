@@ -11,7 +11,9 @@ if(WITH_XC_KEESHARE)
         ShareImport.cpp
         ShareExport.cpp
         ShareObserver.cpp
-        )
+        SharedFileHandler.cpp
+        SharedGroup.cpp
+            )
 
     find_package(Minizip REQUIRED)
 

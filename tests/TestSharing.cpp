@@ -20,6 +20,7 @@
 #include <QTest>
 #include <QXmlStreamReader>
 
+#include "core/Group.h"
 #include "crypto/Crypto.h"
 #include "crypto/Random.h"
 #include "keeshare/KeeShareSettings.h"
@@ -64,7 +65,7 @@ void TestSharing::testNullObjects()
 
     const auto reference = KeeShareSettings::Reference();
     QVERIFY(reference.isNull());
-    const auto xmlReference = KeeShareSettings::Reference::deserialize(empty);
+    const auto xmlReference = KeeShareSettings::readReference(nullptr);
     QVERIFY(xmlReference.isNull());
 }
 
@@ -102,8 +103,9 @@ void TestSharing::testReferenceSerialization()
     original.uuid = uuid;
     original.type = static_cast<KeeShareSettings::Type>(type);
 
-    const QString serialized = KeeShareSettings::Reference::serialize(original);
-    const KeeShareSettings::Reference restored = KeeShareSettings::Reference::deserialize(serialized);
+    auto group = new Group();
+    KeeShareSettings::writeReference(group, original);
+    const auto restored = KeeShareSettings::readReference(group);
 
     QCOMPARE(restored.password, original.password);
     QCOMPARE(restored.path, original.path);

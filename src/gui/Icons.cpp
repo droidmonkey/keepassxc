@@ -278,7 +278,7 @@ QPixmap Icons::groupIconPixmap(const Group* group, IconSize size)
         icon = databaseIcons()->applyBadge(icon, DatabaseIcons::Badges::Expired);
     }
 #ifdef WITH_XC_KEESHARE
-    else if (KeeShare::isShared(group)) {
+    else if (KeeShare::isEnabled(group)) {
         icon = KeeShare::indicatorBadge(group, icon);
     }
 #endif

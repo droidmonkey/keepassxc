@@ -34,31 +34,30 @@
 
 namespace KeeShareSettings
 {
-    namespace
+    static const QString KeeShare_Reference("KeeShare/Reference");
+
+    QString xmlSerialize(std::function<void(QXmlStreamWriter& writer)> specific)
     {
-        QString xmlSerialize(std::function<void(QXmlStreamWriter& writer)> specific)
-        {
-            QString buffer;
-            QXmlStreamWriter writer(&buffer);
+        QString buffer;
+        QXmlStreamWriter writer(&buffer);
 
-            writer.setCodec(QTextCodec::codecForName("UTF-8"));
-            writer.writeStartDocument();
-            writer.writeStartElement("KeeShare");
-            specific(writer);
-            writer.writeEndElement();
-            writer.writeEndDocument();
-            return buffer;
-        }
+        writer.setCodec(QTextCodec::codecForName("UTF-8"));
+        writer.writeStartDocument();
+        writer.writeStartElement("KeeShare");
+        specific(writer);
+        writer.writeEndElement();
+        writer.writeEndDocument();
+        return buffer;
+    }
 
-        void xmlDeserialize(const QString& raw, std::function<void(QXmlStreamReader& reader)> specific)
-        {
-            QXmlStreamReader reader(raw);
-            if (!reader.readNextStartElement() || reader.qualifiedName() != "KeeShare") {
-                return;
-            }
-            specific(reader);
+    void xmlDeserialize(const QString& raw, std::function<void(QXmlStreamReader& reader)> specific)
+    {
+        QXmlStreamReader reader(raw);
+        if (!reader.readNextStartElement() || reader.qualifiedName() != "KeeShare") {
+            return;
         }
-    } // namespace
+        specific(reader);
+    }
 
     void Certificate::serialize(QXmlStreamWriter& writer, const Certificate& certificate)
     {
@@ -287,72 +286,9 @@ namespace KeeShareSettings
         return (type & ImportFrom) != 0 && !path.isEmpty();
     }
 
-    bool Reference::operator<(const Reference& other) const
-    {
-        if (type != other.type) {
-            return type < other.type;
-        }
-        return path < other.path;
-    }
-
     bool Reference::operator==(const Reference& other) const
     {
         return path == other.path && uuid == other.uuid && password == other.password && type == other.type;
-    }
-
-    QString Reference::serialize(const Reference& reference)
-    {
-        return xmlSerialize([&](QXmlStreamWriter& writer) {
-            writer.writeStartElement("Type");
-            if ((reference.type & ImportFrom) == ImportFrom) {
-                writer.writeEmptyElement("Import");
-            }
-            if ((reference.type & ExportTo) == ExportTo) {
-                writer.writeEmptyElement("Export");
-            }
-            writer.writeEndElement();
-            writer.writeStartElement("Group");
-            writer.writeCharacters(reference.uuid.toRfc4122().toBase64());
-            writer.writeEndElement();
-            writer.writeStartElement("Path");
-            writer.writeCharacters(reference.path.toUtf8().toBase64());
-            writer.writeEndElement();
-            writer.writeStartElement("Password");
-            writer.writeCharacters(reference.password.toUtf8().toBase64());
-            writer.writeEndElement();
-        });
-    }
-
-    Reference Reference::deserialize(const QString& raw)
-    {
-        Reference reference;
-        xmlDeserialize(raw, [&](QXmlStreamReader& reader) {
-            while (!reader.error() && reader.readNextStartElement()) {
-                if (reader.name() == "Type") {
-                    while (reader.readNextStartElement()) {
-                        if (reader.name() == "Import") {
-                            reference.type |= ImportFrom;
-                            reader.skipCurrentElement();
-                        } else if (reader.name() == "Export") {
-                            reference.type |= ExportTo;
-                            reader.skipCurrentElement();
-                        } else {
-                            break;
-                        }
-                    }
-                } else if (reader.name() == "Group") {
-                    reference.uuid = QUuid::fromRfc4122(QByteArray::fromBase64(reader.readElementText().toLatin1()));
-                } else if (reader.name() == "Path") {
-                    reference.path = QString::fromUtf8(QByteArray::fromBase64(reader.readElementText().toLatin1()));
-                } else if (reader.name() == "Password") {
-                    reference.password = QString::fromUtf8(QByteArray::fromBase64(reader.readElementText().toLatin1()));
-                } else {
-                    qWarning("Unknown Reference element %s", qPrintable(reader.name().toString()));
-                    reader.skipCurrentElement();
-                }
-            }
-        });
-        return reference;
     }
 
     QString Sign::serialize(const Sign& sign)
@@ -390,5 +326,79 @@ namespace KeeShareSettings
             writer.writeEndElement();
             writer.writeEndElement();
         });
+    }
+
+    bool isShared(const Group* group)
+    {
+        return group && group->customData()->contains(KeeShare_Reference);
+    }
+
+    Reference readReference(const Group* group)
+    {
+        Reference reference;
+        if (!isShared(group)) {
+            return reference;
+        }
+
+        const auto data = group->customData()->value(KeeShare_Reference);
+        const auto serialized = QString::fromUtf8(QByteArray::fromBase64(data.toLatin1()));
+
+        xmlDeserialize(serialized, [&](QXmlStreamReader& reader) {
+            while (!reader.error() && reader.readNextStartElement()) {
+                if (reader.name() == "Type") {
+                    while (reader.readNextStartElement()) {
+                        if (reader.name() == "Import") {
+                            reference.type |= ImportFrom;
+                            reader.skipCurrentElement();
+                        } else if (reader.name() == "Export") {
+                            reference.type |= ExportTo;
+                            reader.skipCurrentElement();
+                        } else {
+                            break;
+                        }
+                    }
+                } else if (reader.name() == "Group") {
+                    reference.uuid = QUuid::fromRfc4122(QByteArray::fromBase64(reader.readElementText().toLatin1()));
+                } else if (reader.name() == "Path") {
+                    reference.path = QString::fromUtf8(QByteArray::fromBase64(reader.readElementText().toLatin1()));
+                } else if (reader.name() == "Password") {
+                    reference.password = QString::fromUtf8(QByteArray::fromBase64(reader.readElementText().toLatin1()));
+                } else {
+                    qWarning("KeeShare: Unknown reference element %s", qPrintable(reader.name().toString()));
+                    reader.skipCurrentElement();
+                }
+            }
+        });
+        return reference;
+    }
+
+    void writeReference(Group* group, const Reference& reference)
+    {
+        if (reference.isNull()) {
+            group->customData()->remove(KeeShare_Reference);
+            return;
+        }
+
+        auto ref = xmlSerialize([&](QXmlStreamWriter& writer) {
+            writer.writeStartElement("Type");
+            if ((reference.type & ImportFrom) == ImportFrom) {
+                writer.writeEmptyElement("Import");
+            }
+            if ((reference.type & ExportTo) == ExportTo) {
+                writer.writeEmptyElement("Export");
+            }
+            writer.writeEndElement();
+            writer.writeStartElement("Group");
+            writer.writeCharacters(reference.uuid.toRfc4122().toBase64());
+            writer.writeEndElement();
+            writer.writeStartElement("Path");
+            writer.writeCharacters(reference.path.toUtf8().toBase64());
+            writer.writeEndElement();
+            writer.writeStartElement("Password");
+            writer.writeCharacters(reference.password.toUtf8().toBase64());
+            writer.writeEndElement();
+        });
+
+        group->customData()->set(KeeShare_Reference, ref.toUtf8().toBase64());
     }
 } // namespace KeeShareSettings

@@ -22,11 +22,11 @@
 #include "core/Metadata.h"
 #include "gui/DatabaseIcons.h"
 #include "keeshare/ShareObserver.h"
+#include "keeshare/SharedGroup.h"
 
-namespace
-{
-    static const QString KeeShare_Reference("KeeShare/Reference");
-}
+#include <QMessageBox>
+#include <QPainter>
+#include <QPushButton>
 
 KeeShare* KeeShare::m_instance = nullptr;
 
@@ -77,37 +77,14 @@ void KeeShare::setOwn(const KeeShareSettings::Own& own)
     config()->set(Config::KeeShare_Own, KeeShareSettings::Own::serialize(own));
 }
 
-bool KeeShare::isShared(const Group* group)
-{
-    return group && group->customData()->contains(KeeShare_Reference);
-}
-
 KeeShareSettings::Reference KeeShare::referenceOf(const Group* group)
 {
-    static const KeeShareSettings::Reference s_emptyReference;
-    const CustomData* customData = group->customData();
-    if (!customData->contains(KeeShare_Reference)) {
-        return s_emptyReference;
-    }
-    const auto encoded = customData->value(KeeShare_Reference);
-    const auto serialized = QString::fromUtf8(QByteArray::fromBase64(encoded.toLatin1()));
-    KeeShareSettings::Reference reference = KeeShareSettings::Reference::deserialize(serialized);
-    if (reference.isNull()) {
-        qWarning("Invalid sharing reference detected - sharing disabled");
-        return s_emptyReference;
-    }
-    return reference;
+    return KeeShareSettings::readReference(group);
 }
 
 void KeeShare::setReferenceTo(Group* group, const KeeShareSettings::Reference& reference)
 {
-    CustomData* customData = group->customData();
-    if (reference.isNull()) {
-        customData->remove(KeeShare_Reference);
-        return;
-    }
-    const auto serialized = KeeShareSettings::Reference::serialize(reference);
-    customData->set(KeeShare_Reference, serialized.toUtf8().toBase64());
+    KeeShareSettings::writeReference(group, reference);
 }
 
 bool KeeShare::isEnabled(const Group* group)
@@ -120,7 +97,7 @@ bool KeeShare::isEnabled(const Group* group)
 const Group* KeeShare::resolveSharedGroup(const Group* group)
 {
     while (group && group != group->database()->rootGroup()) {
-        if (isShared(group)) {
+        if (KeeShareSettings::isShared(group)) {
             return group;
         }
         group = group->parentGroup();
@@ -167,7 +144,7 @@ QString KeeShare::sharingLabel(const Group* group)
 
 QPixmap KeeShare::indicatorBadge(const Group* group, QPixmap pixmap)
 {
-    if (!isShared(group)) {
+    if (!KeeShareSettings::isShared(group)) {
         return pixmap;
     }
 
@@ -199,21 +176,16 @@ QString KeeShare::indicatorSuffix(const Group* group, const QString& text)
     return text;
 }
 
-void KeeShare::connectDatabase(QSharedPointer<Database> newDb, QSharedPointer<Database> oldDb)
+void KeeShare::connectDatabase(const QSharedPointer<Database>& db)
 {
-    if (oldDb && m_observersByDatabase.contains(oldDb->uuid())) {
-        QPointer<ShareObserver> observer = m_observersByDatabase.take(oldDb->uuid());
-        if (observer) {
-            delete observer;
-        }
-    }
+    m_sharedGroups.remove(db->uuid());
 
-    if (newDb && !m_observersByDatabase.contains(newDb->uuid())) {
-        QPointer<ShareObserver> observer(new ShareObserver(newDb, this));
-        m_observersByDatabase[newDb->uuid()] = observer;
-        connect(observer.data(),
-                SIGNAL(sharingMessage(QString, MessageWidget::MessageType)),
-                SIGNAL(sharingMessage(QString, MessageWidget::MessageType)));
+    for (auto group : db->rootGroup()->groupsRecursive(true)) {
+        if (SharedGroup::isShared(group)) {
+            auto share = QSharedPointer<SharedGroup>::create(group);
+            share->sync();
+            m_sharedGroups.insert(db->uuid(), share);
+        }
     }
 }
 

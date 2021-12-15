@@ -35,12 +35,14 @@ namespace KeeShareSettings
 class Group;
 class Database;
 class ShareObserver;
+class SharedGroup;
 class QXmlStreamWriter;
 class QXmlStreamReader;
 
 class KeeShare : public QObject
 {
     Q_OBJECT
+
 public:
     static KeeShare* instance();
     static void init(QObject* parent);
@@ -48,7 +50,6 @@ public:
     static QString indicatorSuffix(const Group* group, const QString& text);
     static QPixmap indicatorBadge(const Group* group, QPixmap pixmap);
 
-    static bool isShared(const Group* group);
     static bool isEnabled(const Group* group);
 
     static const Group* resolveSharedGroup(const Group* group);
@@ -64,7 +65,7 @@ public:
     static void setReferenceTo(Group* group, const KeeShareSettings::Reference& reference);
     static QString referenceTypeLabel(const KeeShareSettings::Reference& reference);
 
-    void connectDatabase(QSharedPointer<Database> newDb, QSharedPointer<Database> oldDb);
+    void connectDatabase(const QSharedPointer<Database>& db);
 
     static const QString signedContainerFileType();
     static const QString unsignedContainerFileType();
@@ -72,6 +73,7 @@ public:
 
     static const QString signatureFileName();
     static const QString containerFileName();
+
 signals:
     void activeChanged();
     void sharingMessage(QString, MessageWidget::MessageType);
@@ -84,7 +86,7 @@ private:
 
     explicit KeeShare(QObject* parent);
 
-    QMap<QUuid, QPointer<ShareObserver>> m_observersByDatabase;
+    QMap<QUuid, QSharedPointer<SharedGroup>> m_sharedGroups;
 };
 
 #endif // KEEPASSXC_KEESHARE_H

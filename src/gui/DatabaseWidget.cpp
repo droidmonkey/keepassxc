@@ -239,7 +239,7 @@ DatabaseWidget::DatabaseWidget(QSharedPointer<Database> db, QWidget* parent)
 #ifdef WITH_XC_KEESHARE
     // We need to reregister the database to allow exports
     // from a newly created database
-    KeeShare::instance()->connectDatabase(m_db, {});
+    KeeShare::instance()->connectDatabase(m_db);
 #endif
 
     if (m_db->isInitialized()) {
@@ -443,14 +443,11 @@ void DatabaseWidget::replaceDatabase(QSharedPointer<Database> db)
         }
     }
 
-    emit databaseReplaced(oldDb, m_db);
-
 #if defined(WITH_XC_KEESHARE)
-    KeeShare::instance()->connectDatabase(m_db, oldDb);
-#else
-    // Keep the instance active till the end of this function
-    Q_UNUSED(oldDb);
+    KeeShare::instance()->connectDatabase(m_db);
 #endif
+
+    emit databaseReplaced(oldDb, m_db);
 
     oldDb->releaseData();
 }
