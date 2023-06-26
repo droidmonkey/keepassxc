@@ -2,6 +2,7 @@
 import json
 import os
 
+# Language list derived from CSV export from Transifex, filtered by 60% or higher completion
 # Download Transifex languages dump at: https://www.transifex.com/api/2/project/keepassxc/languages
 # Language information from https://www.wikiwand.com/en/List_of_ISO_639-1_codes and http://www.lingoes.net/en/translator/langcode.htm
 
