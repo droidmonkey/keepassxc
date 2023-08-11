@@ -55,7 +55,7 @@ GroupView::GroupView(Database* db, QWidget* parent)
     modelReset();
 
     setDragEnabled(true);
-    viewport()->setAcceptDrops(true);
+    setAcceptDrops(true);
     setDropIndicatorShown(true);
     setDefaultDropAction(Qt::MoveAction);
 }

@@ -82,11 +82,12 @@ EntryView::EntryView(QWidget* parent)
     setUniformRowHeights(true);
     setRootIsDecorated(false);
     setAlternatingRowColors(true);
-    setDragEnabled(true);
     setSortingEnabled(true);
     setSelectionMode(QAbstractItemView::ExtendedSelection);
 
-    // QAbstractItemView::startDrag() uses this property as the default drag action
+    setDragEnabled(true);
+    setAcceptDrops(true);
+    setDropIndicatorShown(true);
     setDefaultDropAction(Qt::MoveAction);
 
     connect(this, SIGNAL(doubleClicked(QModelIndex)), SLOT(emitEntryActivated(QModelIndex)));

@@ -422,7 +422,7 @@ QVariant EntryModel::headerData(int section, Qt::Orientation orientation, int ro
 
 Qt::DropActions EntryModel::supportedDropActions() const
 {
-    return Qt::IgnoreAction;
+    return Qt::CopyAction | Qt::MoveAction;
 }
 
 Qt::DropActions EntryModel::supportedDragActions() const
@@ -432,11 +432,16 @@ Qt::DropActions EntryModel::supportedDragActions() const
 
 Qt::ItemFlags EntryModel::flags(const QModelIndex& modelIndex) const
 {
-    if (!modelIndex.isValid()) {
-        return Qt::NoItemFlags;
-    } else {
-        return QAbstractItemModel::flags(modelIndex) | Qt::ItemIsDragEnabled;
+    auto defaultFlags = QAbstractTableModel::flags(modelIndex);
+
+    if (m_group) {
+        defaultFlags |= Qt::ItemIsDropEnabled;
     }
+
+    if (modelIndex.isValid()) {
+        return Qt::ItemIsDragEnabled | defaultFlags;
+    }
+    return defaultFlags;
 }
 
 QStringList EntryModel::mimeTypes() const
