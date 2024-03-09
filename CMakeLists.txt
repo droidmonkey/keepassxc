@@ -87,11 +87,30 @@ endif()
 if(WITH_CCACHE)
     # Use the Compiler Cache (ccache) program
     # (install with: sudo apt get ccache)
-    find_program(CCACHE_FOUND ccache)
-    if(NOT CCACHE_FOUND)
+    find_program(CCACHE_PROG ccache)
+    if(NOT CCACHE_PROG)
         message(FATAL_ERROR "ccache requested but cannot be found.")
     endif()
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ${CCACHE_FOUND})
+    if(MSVC)
+        file(COPY_FILE
+            ${CCACHE_PROG} ${CMAKE_BINARY_DIR}/cl.exe
+            ONLY_IF_DIFFERENT)
+
+        # By default Visual Studio generators will use /Zi which is not compatible
+        # with ccache, so tell Visual Studio to use /Z7 instead.
+        message(STATUS "Setting MSVC debug information format to 'Embedded'")
+        set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+
+        set(CMAKE_VS_GLOBALS
+            "CLToolExe=cl.exe"
+            "CLToolPath=${CMAKE_BINARY_DIR}"
+            "TrackFileAccess=false"
+            "UseMultiToolTask=true"
+            "DebugInformationFormat=OldStyle"
+        )
+    else()
+        set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ${CCACHE_PROG})
+    endif()
 endif()
 
 if(WITH_XC_ALL)
