@@ -19,7 +19,7 @@
 #define KEEPASSX_REPORTSWIDGET_H
 
 #include "config-keepassx.h"
-#include "gui/DialogyWidget.h"
+#include "gui/EditWidget.h"
 #include "gui/entry/EditEntryWidget.h"
 
 class Database;
@@ -52,7 +52,7 @@ public:
     virtual void saveSettings(QWidget* widget) = 0;
 };
 
-class ReportsDialog : public DialogyWidget
+class ReportsDialog : public EditWidget
 {
     Q_OBJECT
 

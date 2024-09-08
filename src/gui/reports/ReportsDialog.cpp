@@ -58,7 +58,7 @@ private:
 };
 
 ReportsDialog::ReportsDialog(QWidget* parent)
-    : DialogyWidget(parent)
+    : EditWidget(parent)
     , m_ui(new Ui::ReportsDialog())
     , m_healthPage(new ReportsPageHealthcheck())
     , m_hibpPage(new ReportsPageHibp())
@@ -73,7 +73,8 @@ ReportsDialog::ReportsDialog(QWidget* parent)
 {
     m_ui->setupUi(this);
 
-    connect(m_ui->buttonBox, SIGNAL(rejected()), SLOT(reject()));
+    setReadOnly(true);
+
     addPage(m_statPage);
     addPage(m_healthPage);
 #ifdef WITH_XC_BROWSER_PASSKEYS
@@ -104,12 +105,15 @@ ReportsDialog::ReportsDialog(QWidget* parent)
         m_passkeysPage->m_passkeysWidget, SIGNAL(entryActivated(Entry*)), SLOT(entryActivationSignalReceived(Entry*)));
 #endif
     connect(m_editEntryWidget, SIGNAL(editFinished(bool)), SLOT(switchToMainView(bool)));
+
+    connect(this, SIGNAL(rejected()), SLOT(reject()));
 }
 
 ReportsDialog::~ReportsDialog() = default;
 
 void ReportsDialog::load(const QSharedPointer<Database>& db)
 {
+    setHeadline(tr("Database Reports: %1").arg(db->canonicalFilePath()));
     m_ui->categoryList->setCurrentCategory(0);
     for (const ExtraPage& page : asConst(m_extraPages)) {
         page.loadSettings(db);
