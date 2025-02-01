@@ -1,0 +1,127 @@
+# Original workflow from https://github.com/minnyres/keepassxc-windows-arm64
+name: Build for Windows ARM64
+
+on:
+  push:
+
+jobs:
+  build-windows-arm64:
+    name: Build
+    runs-on: windows-latest
+    env:
+      qt_version: "5.15.14"
+      qt_path: "${{ github.workspace }}/qt-msvc-arm64"
+      keepassxc_version: "2.7.9"
+      keepassxc_path: "${{ github.workspace }}/keepassxc-windows-arm64"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup devcmd
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64_arm64
+
+      - name: Install build tools
+        run: |
+          choco install jom 
+          gem install asciidoctor
+
+      # use the preinstalled vcpkg from image
+      # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2019-Readme.md#package-management
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: C:/vcpkg
+          doNotUpdateVcpkg: true  # the preinstalled vcpkg is updated regularly
+
+      - name: Install dependencies from vcpkg
+        run: |
+          # clear buildtrees after each package installation to reduce disk space requirements
+          $packages = `
+            "argon2:arm64-windows",
+            "zlib:arm64-windows",
+            "botan:arm64-windows",
+            "minizip:arm64-windows",
+            "readline:arm64-windows",
+            "libqrencode:arm64-windows"
+          ${{ env.RUNVCPKG_VCPKG_ROOT }}/vcpkg.exe upgrade `
+            --no-dry-run
+          ${{ env.RUNVCPKG_VCPKG_ROOT }}/vcpkg.exe install `
+            --clean-after-build `
+            $packages
+
+      - name: Setup devcmd
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
+
+      - name: Install Qt (target arm64)
+        run: |
+          $env:path += ";${{ runner.temp }}/msys64/usr/bin"
+          git clone https://github.com/qt/qt5.git qt5
+          cd qt5
+          git checkout "v${{ env.qt_version }}-lts-lgpl"
+          perl init-repository --module-subset=qtbase,qtsvg,qttools,qtimageformats,qttranslations
+          ./configure -opensource -confirm-license -nomake tests -nomake examples `
+            -schannel -no-icu -system-zlib -qt-sqlite -sql-sqlite -no-sql-mysql -no-sql-odbc -no-sql-psql `
+            -release -platform win32-msvc -xplatform win32-arm64-msvc2017 -prefix "${{ env.qt_path }}" `
+            ZLIB_PREFIX="${{ env.RUNVCPKG_VCPKG_ROOT }}\installed\arm64-windows"
+          jom
+          jom install
+
+      - name: Setup devcmd
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64_arm64
+          
+      - name: Install KeePassXC
+        run: |
+          $env:path = $env:path.replace("C:\mingw64\bin;","")
+          $env:path = $env:path.replace("C:\Strawberry\c\bin;","")
+          git clone `
+            --branch ${{ env.keepassxc_version }} `
+            --depth 1 `
+            https://github.com/keepassxreboot/keepassxc.git
+          cd keepassxc
+          cp ${{ github.workspace }}/FindQREncode.cmake cmake/FindQREncode.cmake
+          cmake `
+            -B build `
+            -G "Ninja" `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DWITH_TESTS=OFF `
+            -DWITH_XC_ALL=ON `
+            -DCMAKE_INSTALL_PREFIX="${{ env.keepassxc_path }}" `
+            -DCMAKE_PREFIX_PATH="${{ env.qt_path }};${{ env.RUNVCPKG_VCPKG_ROOT }}/installed/arm64-windows" 
+          cmake --build build
+          cmake --install build        
+
+      - name: Prepare build artifacts
+        run: |
+          cd ${{ env.keepassxc_path }}
+          rm libssl*.dll
+          rm libcrypto*.dll
+          rm vc_redist*.exe
+          cp ${{ env.RUNVCPKG_VCPKG_ROOT }}\installed\arm64-windows\bin\zlib1.dll .
+          cp ${{ env.RUNVCPKG_VCPKG_ROOT }}\installed\arm64-windows\bin\minizip.dll .
+          cp ${{ env.RUNVCPKG_VCPKG_ROOT }}\installed\arm64-windows\bin\qrencode.dll .
+          cp ${{ env.RUNVCPKG_VCPKG_ROOT }}\installed\arm64-windows\bin\argon2.dll .
+          cp ${{ env.RUNVCPKG_VCPKG_ROOT }}\installed\arm64-windows\bin\botan*.dll .
+          cp ${{ env.RUNVCPKG_VCPKG_ROOT }}\installed\arm64-windows\bin\readline.dll
+          7z a -mx9 KeePassXC_${{ env.keepassxc_version }}_arm64.zip *
+          mv KeePassXC_${{ env.keepassxc_version }}_arm64.zip ..
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: KeePassXC_${{ env.keepassxc_version }}_arm64
+          path: ${{ env.keepassxc_path }}
+
+      - name: Batch release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: KeePassXC_${{ env.keepassxc_version }}_arm64.zip
