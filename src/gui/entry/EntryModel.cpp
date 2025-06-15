@@ -345,18 +345,16 @@ QVariant EntryModel::data(const QModelIndex& index, int role) const
             }
         }
 
-        QColor foregroundColor;
-        foregroundColor.setNamedColor(entry->foregroundColor());
+        // Only handle special foreground color for entries with references
         if (entry->hasReferences()) {
             QPalette p;
-            foregroundColor = p.color(QPalette::Current, QPalette::Text);
+            QColor foregroundColor = p.color(QPalette::Current, QPalette::Text);
             int lightness =
                 qMin(255, qMax(0, foregroundColor.lightness() + (foregroundColor.lightness() < 110 ? 85 : -51)));
             foregroundColor.setHsl(foregroundColor.hue(), foregroundColor.saturation(), lightness);
             return QVariant(foregroundColor);
-        } else if (foregroundColor.isValid()) {
-            return QVariant(foregroundColor);
         }
+        // No longer use entry->foregroundColor() for display
     } else if (role == Qt::BackgroundRole) {
         if (m_backgroundColorVisible) {
             QColor backgroundColor;

@@ -679,16 +679,10 @@ void TestGui::testEditEntry()
 
     // Test entry colors (simulate choosing a color)
     editEntryWidget->switchToPage(EditEntryWidget::Page::Advanced);
-    auto fgColor = QString("#FF0000");
     auto bgColor = QString("#0000FF");
-    // Set foreground color
-    auto colorButton = editEntryWidget->findChild<QPushButton*>("fgColorButton");
-    auto colorCheckBox = editEntryWidget->findChild<QCheckBox*>("fgColorCheckBox");
-    colorButton->setProperty("color", fgColor);
-    colorCheckBox->setChecked(true);
     // Set background color
-    colorButton = editEntryWidget->findChild<QPushButton*>("bgColorButton");
-    colorCheckBox = editEntryWidget->findChild<QCheckBox*>("bgColorCheckBox");
+    auto colorButton = editEntryWidget->findChild<QPushButton*>("bgColorButton");
+    auto colorCheckBox = editEntryWidget->findChild<QCheckBox*>("bgColorCheckBox");
     colorButton->setProperty("color", bgColor);
     colorCheckBox->setChecked(true);
     QTest::mouseClick(applyButton, Qt::LeftButton);
@@ -714,8 +708,6 @@ void TestGui::testEditEntry()
     // Confirm edit was made
     QCOMPARE(m_dbWidget->currentMode(), DatabaseWidget::Mode::ViewMode);
     QCOMPARE(entry->title(), QString("Sample Entry_test"));
-    QCOMPARE(entry->foregroundColor().toUpper(), fgColor.toUpper());
-    QCOMPARE(entryItem.data(Qt::ForegroundRole), QVariant(fgColor));
     QCOMPARE(entry->backgroundColor().toUpper(), bgColor.toUpper());
     QCOMPARE(entryItem.data(Qt::BackgroundRole), QVariant(bgColor));
     QCOMPARE(entry->historyItems().size(), ++editCount);

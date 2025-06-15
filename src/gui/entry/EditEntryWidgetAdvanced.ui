@@ -204,51 +204,7 @@
       <property name="bottomMargin">
        <number>0</number>
       </property>
-      <item>
-       <widget class="QCheckBox" name="fgColorCheckBox">
-        <property name="text">
-         <string>Foreground Color:</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="fgColorButton">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>25</width>
-          <height>25</height>
-         </size>
-        </property>
-        <property name="accessibleName">
-         <string>Foreground color selection</string>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::Maximum</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>30</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
+
       <item>
        <widget class="QCheckBox" name="bgColorCheckBox">
         <property name="text">
@@ -321,8 +277,6 @@
   <tabstop>protectAttributeButton</tabstop>
   <tabstop>revealAttributeButton</tabstop>
   <tabstop>excludeReportsCheckBox</tabstop>
-  <tabstop>fgColorCheckBox</tabstop>
-  <tabstop>fgColorButton</tabstop>
   <tabstop>bgColorCheckBox</tabstop>
   <tabstop>bgColorButton</tabstop>
  </tabstops>

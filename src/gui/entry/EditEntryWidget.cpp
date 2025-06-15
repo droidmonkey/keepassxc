@@ -244,7 +244,6 @@ void EditEntryWidget::setupAdvanced()
     connect(m_advancedUi->attributesView->selectionModel(),
             SIGNAL(currentChanged(QModelIndex,QModelIndex)),
             SLOT(updateCurrentAttribute()));
-    connect(m_advancedUi->fgColorButton, SIGNAL(clicked()), SLOT(pickColor()));
     connect(m_advancedUi->bgColorButton, SIGNAL(clicked()), SLOT(pickColor()));
     // clang-format on
 }
@@ -501,7 +500,6 @@ void EditEntryWidget::setupEntryUpdate()
     connect(m_advancedUi->attributesEdit, SIGNAL(textChanged()), this, SLOT(setModified()));
     connect(m_advancedUi->protectAttributeButton, SIGNAL(stateChanged(int)), this, SLOT(setModified()));
     connect(m_advancedUi->excludeReportsCheckBox, SIGNAL(stateChanged(int)), this, SLOT(setModified()));
-    connect(m_advancedUi->fgColorCheckBox, SIGNAL(stateChanged(int)), this, SLOT(setModified()));
     connect(m_advancedUi->bgColorCheckBox, SIGNAL(stateChanged(int)), this, SLOT(setModified()));
     connect(m_advancedUi->attachmentsWidget, SIGNAL(widgetUpdated()), this, SLOT(setModified()));
 
@@ -984,7 +982,6 @@ void EditEntryWidget::setForms(Entry* entry, bool restore)
     }
     m_advancedUi->attributesView->setEditTriggers(editTriggers);
     m_advancedUi->excludeReportsCheckBox->setChecked(entry->excludeFromReports());
-    setupColorButton(true, entry->foregroundColor());
     setupColorButton(false, entry->backgroundColor());
     m_iconsWidget->setEnabled(!m_history);
     m_autoTypeUi->sequenceEdit->setReadOnly(m_history);
@@ -1279,12 +1276,6 @@ void EditEntryWidget::updateEntryData(Entry* entry) const
 
     if (entry->excludeFromReports() != m_advancedUi->excludeReportsCheckBox->isChecked()) {
         entry->setExcludeFromReports(m_advancedUi->excludeReportsCheckBox->isChecked());
-    }
-
-    if (m_advancedUi->fgColorCheckBox->isChecked() && m_advancedUi->fgColorButton->property("color").isValid()) {
-        entry->setForegroundColor(m_advancedUi->fgColorButton->property("color").toString());
-    } else {
-        entry->setForegroundColor(QString());
     }
 
     if (m_advancedUi->bgColorCheckBox->isChecked() && m_advancedUi->bgColorButton->property("color").isValid()) {
@@ -1706,12 +1697,13 @@ QMenu* EditEntryWidget::createPresetsMenu()
 
 void EditEntryWidget::setupColorButton(bool foreground, const QColor& color)
 {
-    QWidget* button = m_advancedUi->fgColorButton;
-    QCheckBox* checkBox = m_advancedUi->fgColorCheckBox;
-    if (!foreground) {
-        button = m_advancedUi->bgColorButton;
-        checkBox = m_advancedUi->bgColorCheckBox;
+    // Only handle background color now
+    if (foreground) {
+        return; // Ignore foreground color requests
     }
+    
+    QWidget* button = m_advancedUi->bgColorButton;
+    QCheckBox* checkBox = m_advancedUi->bgColorCheckBox;
 
     if (color.isValid()) {
         button->setStyleSheet(QString("background-color:%1").arg(color.name()));
@@ -1726,15 +1718,12 @@ void EditEntryWidget::setupColorButton(bool foreground, const QColor& color)
 
 void EditEntryWidget::pickColor()
 {
-    bool isForeground = (sender() == m_advancedUi->fgColorButton);
-    QColor oldColor = QColor(m_advancedUi->fgColorButton->property("color").toString());
-    if (!isForeground) {
-        oldColor = QColor(m_advancedUi->bgColorButton->property("color").toString());
-    }
+    // Only handle background color now
+    QColor oldColor = QColor(m_advancedUi->bgColorButton->property("color").toString());
 
     QColor newColor = QColorDialog::getColor(oldColor);
     if (newColor.isValid()) {
-        setupColorButton(isForeground, newColor);
+        setupColorButton(false, newColor);
         setModified(true);
     }
 }
