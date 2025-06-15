@@ -1701,7 +1701,7 @@ void EditEntryWidget::setupColorButton(bool foreground, const QColor& color)
     if (foreground) {
         return; // Ignore foreground color requests
     }
-    
+
     QWidget* button = m_advancedUi->bgColorButton;
     QCheckBox* checkBox = m_advancedUi->bgColorCheckBox;
 
