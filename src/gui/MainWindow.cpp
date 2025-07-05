@@ -35,6 +35,7 @@
 
 #include "Application.h"
 #include "Clipboard.h"
+#include "MainWindowMenuManager.h"
 #include "autotype/AutoType.h"
 #include "core/InactivityTimer.h"
 #include "core/Resources.h"
@@ -123,43 +124,15 @@ MainWindow::MainWindow()
         m_ui->toolBar->setVisible(!config()->get(Config::GUI_HideToolbar).toBool());
     });
 
-    m_countDefaultAttributes = m_ui->menuEntryCopyAttribute->actions().size();
+    // Initialize menu manager
+    m_menuManager = new MainWindowMenuManager(m_ui.data(), m_ui->tabWidget, this);
+    m_menuManager->initializeMenus();
 
-    m_entryContextMenu = new QMenu(this);
-    m_entryContextMenu->setSeparatorsCollapsible(true);
-    m_entryContextMenu->addAction(m_ui->actionEntryRestore);
-    m_entryContextMenu->addSeparator();
-    m_entryContextMenu->addAction(m_ui->actionEntryCopyUsername);
-    m_entryContextMenu->addAction(m_ui->actionEntryCopyPassword);
-    m_entryContextMenu->addAction(m_ui->actionEntryCopyURL);
-    m_entryContextMenu->addAction(m_ui->menuEntryCopyAttribute->menuAction());
-    m_entryContextMenu->addAction(m_ui->menuEntryTotp->menuAction());
-    m_entryContextMenu->addAction(m_ui->menuTags->menuAction());
-    m_entryContextMenu->addSeparator();
-    m_entryContextMenu->addAction(m_ui->actionEntryAutoType);
-    m_entryContextMenu->addSeparator();
-#ifdef WITH_XC_BROWSER_PASSKEYS
-    m_entryContextMenu->addAction(m_ui->actionEntryImportPasskey);
-    m_entryContextMenu->addAction(m_ui->actionEntryRemovePasskey);
-    m_entryContextMenu->addSeparator();
-#endif
-    m_entryContextMenu->addAction(m_ui->actionEntryEdit);
-    m_entryContextMenu->addAction(m_ui->actionEntryExpire);
-    m_entryContextMenu->addAction(m_ui->actionEntryClone);
-    m_entryContextMenu->addAction(m_ui->actionEntryDelete);
-    m_entryContextMenu->addAction(m_ui->actionEntryNew);
-    m_entryContextMenu->addSeparator();
-    m_entryContextMenu->addAction(m_ui->actionEntryMoveUp);
-    m_entryContextMenu->addAction(m_ui->actionEntryMoveDown);
-    m_entryContextMenu->addSeparator();
-    m_entryContextMenu->addAction(m_ui->actionEntryOpenUrl);
-    m_entryContextMenu->addAction(m_ui->actionEntryDownloadIcon);
-    m_entryContextMenu->addSeparator();
-    m_entryContextMenu->addAction(m_ui->actionEntryAddToAgent);
-    m_entryContextMenu->addAction(m_ui->actionEntryRemoveFromAgent);
-
-    m_entryNewContextMenu = new QMenu(this);
-    m_entryNewContextMenu->addAction(m_ui->actionEntryNew);
+    // Connect menu manager signals
+    connect(m_menuManager, &MainWindowMenuManager::openRecentDatabase, this, [this](const QString& filePath) {
+        openDatabase(filePath);
+    });
+    connect(m_menuManager, &MainWindowMenuManager::clearLastDatabases, this, &MainWindow::clearLastDatabases);
 
     connect(m_ui->menuRemoteSync, &QMenu::aboutToShow, this, &MainWindow::updateRemoteSyncMenuEntries);
 
@@ -243,21 +216,20 @@ MainWindow::MainWindow()
     m_ui->globalMessageWidget->hideMessage();
     connect(m_ui->globalMessageWidget, &MessageWidget::linkActivated, &MessageWidget::openHttpUrl);
 
-    m_clearHistoryAction = new QAction(tr("Clear history"), m_ui->menuFile);
-    m_lastDatabasesActions = new QActionGroup(m_ui->menuRecentDatabases);
-    connect(m_clearHistoryAction, SIGNAL(triggered()), this, SLOT(clearLastDatabases()));
-    connect(m_lastDatabasesActions, SIGNAL(triggered(QAction*)), this, SLOT(openRecentDatabase(QAction*)));
-    connect(m_ui->menuRecentDatabases, SIGNAL(aboutToShow()), this, SLOT(updateLastDatabasesMenu()));
+    // Menu update connections - these use the menu manager now
+    connect(
+        m_ui->menuRecentDatabases, &QMenu::aboutToShow, m_menuManager, &MainWindowMenuManager::updateLastDatabasesMenu);
+    connect(m_ui->menuEntryCopyAttribute,
+            &QMenu::aboutToShow,
+            m_menuManager,
+            &MainWindowMenuManager::updateCopyAttributesMenu);
+    connect(m_ui->menuTags, &QMenu::aboutToShow, m_menuManager, &MainWindowMenuManager::updateSetTagsMenu);
 
-    m_copyAdditionalAttributeActions = new QActionGroup(m_ui->menuEntryCopyAttribute);
+    // Connect action multiplexer to menu manager action groups
     m_actionMultiplexer.connect(
-        m_copyAdditionalAttributeActions, SIGNAL(triggered(QAction*)), SLOT(copyAttribute(QAction*)));
-    connect(m_ui->menuEntryCopyAttribute, SIGNAL(aboutToShow()), this, SLOT(updateCopyAttributesMenu()));
-
-    m_setTagsMenuActions = new QActionGroup(m_ui->menuTags);
-    m_setTagsMenuActions->setExclusive(false);
-    m_actionMultiplexer.connect(m_setTagsMenuActions, SIGNAL(triggered(QAction*)), SLOT(setTag(QAction*)));
-    connect(m_ui->menuTags, &QMenu::aboutToShow, this, &MainWindow::updateSetTagsMenu);
+        m_menuManager->copyAdditionalAttributeActions(), SIGNAL(triggered(QAction*)), SLOT(copyAttribute(QAction*)));
+    m_actionMultiplexer.connect(
+        m_menuManager->setTagsMenuActions(), SIGNAL(triggered(QAction*)), SLOT(setTag(QAction*)));
 
     Qt::Key globalAutoTypeKey = static_cast<Qt::Key>(config()->get(Config::GlobalAutoTypeKey).toInt());
     Qt::KeyboardModifiers globalAutoTypeModifiers =
@@ -301,10 +273,10 @@ MainWindow::MainWindow()
 
     connect(m_ui->menuEntries, SIGNAL(aboutToShow()), SLOT(obtainContextFocusLock()));
     connect(m_ui->menuEntries, SIGNAL(aboutToHide()), SLOT(releaseContextFocusLock()));
-    connect(m_entryContextMenu, SIGNAL(aboutToShow()), SLOT(obtainContextFocusLock()));
-    connect(m_entryContextMenu, SIGNAL(aboutToHide()), SLOT(releaseContextFocusLock()));
-    connect(m_entryNewContextMenu, SIGNAL(aboutToShow()), SLOT(obtainContextFocusLock()));
-    connect(m_entryNewContextMenu, SIGNAL(aboutToHide()), SLOT(releaseContextFocusLock()));
+    connect(m_menuManager->entryContextMenu(), SIGNAL(aboutToShow()), SLOT(obtainContextFocusLock()));
+    connect(m_menuManager->entryContextMenu(), SIGNAL(aboutToHide()), SLOT(releaseContextFocusLock()));
+    connect(m_menuManager->entryNewContextMenu(), SIGNAL(aboutToShow()), SLOT(obtainContextFocusLock()));
+    connect(m_menuManager->entryNewContextMenu(), SIGNAL(aboutToHide()), SLOT(releaseContextFocusLock()));
     connect(m_ui->menuGroups, SIGNAL(aboutToShow()), SLOT(obtainContextFocusLock()));
     connect(m_ui->menuGroups, SIGNAL(aboutToHide()), SLOT(releaseContextFocusLock()));
 
@@ -772,101 +744,6 @@ bool MainWindow::refreshHardwareKeys()
 #endif
 }
 
-void MainWindow::updateLastDatabasesMenu()
-{
-    m_ui->menuRecentDatabases->clear();
-
-    const QStringList lastDatabases = config()->get(Config::LastDatabases).toStringList();
-    for (const QString& database : lastDatabases) {
-        QAction* action = m_ui->menuRecentDatabases->addAction(database);
-        action->setData(database);
-        m_lastDatabasesActions->addAction(action);
-    }
-    m_ui->menuRecentDatabases->addSeparator();
-    m_ui->menuRecentDatabases->addAction(m_clearHistoryAction);
-}
-
-void MainWindow::updateCopyAttributesMenu()
-{
-    DatabaseWidget* dbWidget = m_ui->tabWidget->currentDatabaseWidget();
-    if (!dbWidget) {
-        return;
-    }
-
-    if (dbWidget->numberOfSelectedEntries() != 1) {
-        return;
-    }
-
-    QList<QAction*> actions = m_ui->menuEntryCopyAttribute->actions();
-    for (int i = m_countDefaultAttributes; i < actions.size(); i++) {
-        delete actions[i];
-    }
-
-    const QStringList customEntryAttributes = dbWidget->customEntryAttributes();
-    for (const QString& key : customEntryAttributes) {
-        QAction* action = m_ui->menuEntryCopyAttribute->addAction(key);
-        action->setData(QVariant(key));
-        m_copyAdditionalAttributeActions->addAction(action);
-    }
-}
-
-void MainWindow::updateSetTagsMenu()
-{
-    auto actionForTag = [](const QMenu* menu, const QString& tag) -> QAction* {
-        for (const auto action : menu->actions()) {
-            if (action->text() == tag) {
-                return action;
-            }
-        }
-        return nullptr;
-    };
-
-    m_ui->menuTags->setTearOffEnabled(true);
-
-    auto dbWidget = m_ui->tabWidget->currentDatabaseWidget();
-    if (dbWidget) {
-        // Enumerate tags applied to the selected entries
-        QSet<QString> selectedTags;
-        for (const auto entry : dbWidget->entryView()->selectedEntries()) {
-            for (const auto& tag : entry->tagList()) {
-                selectedTags.insert(tag);
-            }
-        }
-
-        // Remove missing tags
-        const auto tagList = dbWidget->database()->tagList();
-        for (const auto action : m_ui->menuTags->actions()) {
-            if (!tagList.contains(action->text()) || !action->isEnabled()) {
-                delete action;
-            }
-        }
-
-        // Add known database tags as actions and set checked if
-        // a selected entry has that tag
-        for (const auto& tag : tagList) {
-            auto action = actionForTag(m_ui->menuTags, tag);
-            if (!action) {
-                action = m_ui->menuTags->addAction(icons()->icon("tag"), tag);
-                action->setCheckable(true);
-                m_setTagsMenuActions->addAction(action);
-            }
-            action->setChecked(selectedTags.contains(tag));
-        }
-    }
-
-    // If no tags exist in the database then show a tip to the user
-    if (m_ui->menuTags->isEmpty()) {
-        m_ui->menuTags->setTearOffEnabled(false);
-        auto action = m_ui->menuTags->addAction(tr("No Tags"));
-        action->setEnabled(false);
-    }
-}
-
-void MainWindow::openRecentDatabase(QAction* action)
-{
-    openDatabase(action->data().toString());
-}
-
 void MainWindow::clearLastDatabases()
 {
     config()->remove(Config::LastDatabases);
@@ -962,7 +839,7 @@ void MainWindow::updateMenuActionState()
         if (!databaseUnlocked) {
             m_ui->menuTags->hideTearOffMenu();
         } else {
-            updateSetTagsMenu();
+            m_menuManager->updateSetTagsMenu();
         }
     }
     m_ui->actionEntryAutoType->setEnabled(singleEntrySelected && dbWidget->currentEntryHasAutoTypeEnabled());
@@ -1643,9 +1520,9 @@ void MainWindow::showEntryContextMenu(const QPoint& globalPos)
     }
 
     if (entrySelected) {
-        m_entryContextMenu->popup(globalPos);
+        m_menuManager->entryContextMenu()->popup(globalPos);
     } else {
-        m_entryNewContextMenu->popup(globalPos);
+        m_menuManager->entryNewContextMenu()->popup(globalPos);
     }
 }
 

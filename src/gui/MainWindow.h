@@ -30,6 +30,8 @@
 #include "gui/DatabaseWidget.h"
 #include "gui/osutils/ScreenLockListener.h"
 
+class MainWindowMenuManager;
+
 namespace Ui
 {
     class MainWindow;
@@ -130,11 +132,7 @@ private slots:
     void updateRemoteSyncMenuEntries();
     void databaseStatusChanged(DatabaseWidget* dbWidget);
     void databaseTabChanged(int tabIndex);
-    void openRecentDatabase(QAction* action);
     void clearLastDatabases();
-    void updateLastDatabasesMenu();
-    void updateCopyAttributesMenu();
-    void updateSetTagsMenu();
     void showEntryContextMenu(const QPoint& globalPos);
     void showGroupContextMenu(const QPoint& globalPos);
     void applySettingsChanges();
@@ -173,16 +171,10 @@ private:
 
     const QScopedPointer<Ui::MainWindow> m_ui;
     SignalMultiplexer m_actionMultiplexer;
-    QPointer<QAction> m_clearHistoryAction;
+    QPointer<MainWindowMenuManager> m_menuManager;
     QPointer<QAction> m_searchWidgetAction;
-    QPointer<QMenu> m_entryContextMenu;
-    QPointer<QMenu> m_entryNewContextMenu;
-    QPointer<QActionGroup> m_lastDatabasesActions;
-    QPointer<QActionGroup> m_copyAdditionalAttributeActions;
-    QPointer<QActionGroup> m_setTagsMenuActions;
     QPointer<InactivityTimer> m_inactivityTimer;
     QPointer<InactivityTimer> m_touchIDinactivityTimer;
-    int m_countDefaultAttributes;
     QPointer<QSystemTrayIcon> m_trayIcon;
     QPointer<ScreenLockListener> m_screenLockListener;
     QPointer<SearchWidget> m_searchWidget;
