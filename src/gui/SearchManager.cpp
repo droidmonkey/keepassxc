@@ -61,7 +61,7 @@ void SearchManager::saveSearch(const QString& searchText)
     // Implementation for saving search queries
     // This would typically involve storing in application settings or database
     // For now, this is a placeholder
-    
+
     Q_UNUSED(searchText)
 }
 
@@ -74,7 +74,7 @@ void SearchManager::deleteSearch(const QString& name)
     // Implementation for deleting saved search queries
     // This would typically involve removing from application settings or database
     // For now, this is a placeholder
-    
+
     Q_UNUSED(name)
 }
 
@@ -87,14 +87,14 @@ void SearchManager::endSearch()
     emit listModeAboutToActivate();
     m_searchActive = false;
     m_lastSearchText.clear();
-    
+
     // Reset entry view to show all entries
     auto entryView = m_databaseWidget->entryView();
     if (entryView && m_databaseWidget->currentGroup()) {
         // Display the current group to return from search mode
         entryView->displayGroup(m_databaseWidget->currentGroup());
     }
-    
+
     emit listModeActivated();
     emit clearSearch();
 }
@@ -112,7 +112,7 @@ void SearchManager::setSearchCaseSensitive(bool caseSensitive)
 {
     if (m_entrySearcher) {
         m_entrySearcher->setCaseSensitive(caseSensitive);
-        
+
         // Refresh current search if active
         if (m_searchActive) {
             refreshSearch();
@@ -123,7 +123,7 @@ void SearchManager::setSearchCaseSensitive(bool caseSensitive)
 void SearchManager::setSearchLimitGroup(bool limitToGroup)
 {
     m_searchLimitGroup = limitToGroup;
-    
+
     // Refresh current search if active
     if (m_searchActive) {
         refreshSearch();
@@ -151,7 +151,7 @@ void SearchManager::setTag(QAction* action)
     // Implementation for setting tag filter
     // This would filter entries based on the selected tag
     // For now, this is a placeholder
-    
+
     Q_UNUSED(tagName)
 }
 
@@ -211,4 +211,3 @@ void SearchManager::updateSearchState()
     // This could involve updating search labels, counters, etc.
     // For now, this is a placeholder
 }
-

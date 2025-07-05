@@ -20,11 +20,11 @@
 
 #include "core/Entry.h"
 #include "core/Group.h"
+#include "gui/DatabaseOpenWidget.h"
+#include "gui/dbsettings/DatabaseSettingsDialog.h"
 #include "gui/entry/EditEntryWidget.h"
 #include "gui/group/EditGroupWidget.h"
 #include "gui/reports/ReportsDialog.h"
-#include "gui/dbsettings/DatabaseSettingsDialog.h"
-#include "gui/DatabaseOpenWidget.h"
 
 #ifdef WITH_XC_BROWSER_PASSKEYS
 #include "gui/passkeys/PasskeyImporter.h"
@@ -49,12 +49,12 @@ void ViewStateManager::switchToMainView(bool previousDialogAccepted)
 {
     setCurrentMode(DatabaseWidget::Mode::ViewMode);
     activateChildWidget(m_databaseWidget->m_mainWidget);
-    
+
     if (previousDialogAccepted) {
         // Handle any post-dialog actions
         m_databaseWidget->focusOnEntries();
     }
-    
+
     emit currentModeChanged(m_currentMode);
 }
 
@@ -73,13 +73,13 @@ void ViewStateManager::switchToEntryEdit(Entry* entry, bool create)
     }
 
     setCurrentMode(DatabaseWidget::Mode::EditEntryMode);
-    
+
     auto editWidget = m_databaseWidget->m_editEntryWidget;
     if (editWidget) {
         editWidget->loadEntry(entry, create, false, QString(), m_databaseWidget->database());
         activateChildWidget(editWidget);
     }
-    
+
     emit currentModeChanged(m_currentMode);
 }
 
@@ -98,26 +98,26 @@ void ViewStateManager::switchToGroupEdit(Group* group, bool create)
     }
 
     setCurrentMode(DatabaseWidget::Mode::EditGroupMode);
-    
+
     auto editWidget = m_databaseWidget->m_editGroupWidget;
     if (editWidget) {
         editWidget->loadGroup(group, create, m_databaseWidget->database());
         activateChildWidget(editWidget);
     }
-    
+
     emit currentModeChanged(m_currentMode);
 }
 
 void ViewStateManager::switchToDatabaseSettings()
 {
     setCurrentMode(DatabaseWidget::Mode::DatabaseSettingsMode);
-    
+
     auto settingsDialog = m_databaseWidget->m_databaseSettingDialog;
     if (settingsDialog) {
         settingsDialog->load(m_databaseWidget->database());
         activateChildWidget(settingsDialog);
     }
-    
+
     emit currentModeChanged(m_currentMode);
 }
 
@@ -131,13 +131,13 @@ void ViewStateManager::switchToDatabaseSecurity()
 void ViewStateManager::switchToDatabaseReports()
 {
     setCurrentMode(DatabaseWidget::Mode::ReportsMode);
-    
+
     auto reportsDialog = m_databaseWidget->m_reportsDialog;
     if (reportsDialog) {
         reportsDialog->load(m_databaseWidget->database());
         activateChildWidget(reportsDialog);
     }
-    
+
     emit currentModeChanged(m_currentMode);
 }
 
@@ -162,26 +162,26 @@ void ViewStateManager::switchToPasskeys()
 void ViewStateManager::switchToOpenDatabase()
 {
     setCurrentMode(DatabaseWidget::Mode::LockedMode);
-    
+
     auto openWidget = m_databaseWidget->m_databaseOpenWidget;
     if (openWidget) {
         openWidget->load(m_databaseWidget->database()->filePath());
         activateChildWidget(openWidget);
     }
-    
+
     emit currentModeChanged(m_currentMode);
 }
 
 void ViewStateManager::switchToOpenDatabase(const QString& filePath)
 {
     setCurrentMode(DatabaseWidget::Mode::LockedMode);
-    
+
     auto openWidget = m_databaseWidget->m_databaseOpenWidget;
     if (openWidget) {
         openWidget->load(filePath);
         activateChildWidget(openWidget);
     }
-    
+
     emit currentModeChanged(m_currentMode);
 }
 
@@ -189,7 +189,7 @@ void ViewStateManager::switchToOpenDatabase(const QString& filePath, const QStri
 {
     Q_UNUSED(password) // These parameters may be used in future implementation
     Q_UNUSED(keyFile)
-    
+
     // For now, just switch to open database with the file path
     switchToOpenDatabase(filePath);
 }
@@ -201,13 +201,13 @@ void ViewStateManager::switchToHistoryView(Entry* entry)
     }
 
     setCurrentMode(DatabaseWidget::Mode::EditEntryMode);
-    
+
     auto historyWidget = m_databaseWidget->m_historyEditEntryWidget;
     if (historyWidget) {
         historyWidget->loadEntry(entry, false, true, QString(), m_databaseWidget->database());
         activateChildWidget(historyWidget);
     }
-    
+
     emit currentModeChanged(m_currentMode);
 }
 
@@ -218,17 +218,17 @@ void ViewStateManager::clearAllWidgets()
     if (editEntryWidget) {
         editEntryWidget->clear();
     }
-    
+
     auto editGroupWidget = m_databaseWidget->m_editGroupWidget;
     if (editGroupWidget) {
         editGroupWidget->clear();
     }
-    
+
     auto historyWidget = m_databaseWidget->m_historyEditEntryWidget;
     if (historyWidget) {
         historyWidget->clear();
     }
-    
+
     // Switch back to main view
     switchToMainView();
 }
@@ -241,14 +241,14 @@ bool ViewStateManager::isEditWidgetModified() const
         // This may need to be implemented based on the actual EditEntryWidget API
         return false; // Placeholder
     }
-    
+
     auto editGroupWidget = m_databaseWidget->m_editGroupWidget;
     if (editGroupWidget && editGroupWidget->isVisible()) {
         // Check if the widget has been modified
         // This may need to be implemented based on the actual EditGroupWidget API
         return false; // Placeholder
     }
-    
+
     return false;
 }
 
@@ -293,4 +293,3 @@ void ViewStateManager::activateChildWidget(QWidget* widget)
     m_databaseWidget->setCurrentWidget(widget);
     widget->setFocus();
 }
-

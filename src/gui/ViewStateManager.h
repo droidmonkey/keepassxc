@@ -18,18 +18,18 @@
 #ifndef KEEPASSX_VIEWSTATEMANAGER_H
 #define KEEPASSX_VIEWSTATEMANAGER_H
 
-#include <QObject>
 #include "DatabaseWidget.h"
+#include <QObject>
 
 class Entry;
 class Group;
 
 /**
  * @brief Manages view state transitions for DatabaseWidget
- * 
+ *
  * This class extracts view state management and mode transitions
  * from the DatabaseWidget to improve separation of concerns and maintainability.
- * 
+ *
  * Responsibilities:
  * - Managing different widget modes (View, Edit, Locked, Reports, Settings)
  * - Coordinating view transitions
@@ -193,8 +193,8 @@ private:
      */
     void activateChildWidget(QWidget* widget);
 
-    DatabaseWidget* m_databaseWidget;           ///< Reference to parent DatabaseWidget
-    DatabaseWidget::Mode m_currentMode;        ///< Current widget mode
+    DatabaseWidget* m_databaseWidget; ///< Reference to parent DatabaseWidget
+    DatabaseWidget::Mode m_currentMode; ///< Current widget mode
 
     Q_DISABLE_COPY(ViewStateManager)
 };

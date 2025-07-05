@@ -27,10 +27,10 @@ class DatabaseWidget;
 
 /**
  * @brief Manages database operations for DatabaseWidget
- * 
+ *
  * This class extracts database-specific operations (save, load, lock, unlock)
  * from the DatabaseWidget to improve separation of concerns and maintainability.
- * 
+ *
  * Responsibilities:
  * - Database saving operations (save, saveAs, saveBackup)
  * - Database locking/unlocking
@@ -109,8 +109,8 @@ private:
     bool performSave(QString& errorMessage, const QString& fileName = {});
 
     DatabaseWidget* m_databaseWidget; ///< Reference to parent DatabaseWidget
-    int m_saveAttempts;               ///< Number of save attempts for current operation
-    bool m_isSaving;                  ///< Flag indicating save operation in progress
+    int m_saveAttempts; ///< Number of save attempts for current operation
+    bool m_isSaving; ///< Flag indicating save operation in progress
 
     Q_DISABLE_COPY(DatabaseOperationsManager)
 };

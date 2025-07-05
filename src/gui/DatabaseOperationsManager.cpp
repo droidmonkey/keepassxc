@@ -53,14 +53,14 @@ bool DatabaseOperationsManager::save()
 
     QString errorMessage;
     bool success = performSave(errorMessage);
-    
+
     if (!success && !errorMessage.isEmpty()) {
         m_databaseWidget->showErrorMessage(errorMessage);
     }
 
     m_isSaving = false;
     emit saveCompleted(success);
-    
+
     return success;
 }
 
@@ -72,12 +72,11 @@ bool DatabaseOperationsManager::saveAs()
 
     auto db = m_databaseWidget->database();
     auto oldFileName = db->filePath();
-    
-    QString fileName = fileDialog()->getSaveFileName(
-        m_databaseWidget,
-        tr("Save Database"),
-        oldFileName.isEmpty() ? tr("Passwords") : oldFileName,
-        tr("KeePass Database (*.kdbx)"));
+
+    QString fileName = fileDialog()->getSaveFileName(m_databaseWidget,
+                                                     tr("Save Database"),
+                                                     oldFileName.isEmpty() ? tr("Passwords") : oldFileName,
+                                                     tr("KeePass Database (*.kdbx)"));
 
     if (fileName.isEmpty()) {
         return false;
@@ -92,14 +91,14 @@ bool DatabaseOperationsManager::saveAs()
 
     QString errorMessage;
     bool success = performSave(errorMessage, fileName);
-    
+
     if (!success && !errorMessage.isEmpty()) {
         m_databaseWidget->showErrorMessage(errorMessage);
     }
 
     m_isSaving = false;
     emit saveCompleted(success);
-    
+
     return success;
 }
 
@@ -111,7 +110,7 @@ bool DatabaseOperationsManager::saveBackup()
 
     auto db = m_databaseWidget->database();
     auto fileName = db->filePath();
-    
+
     if (fileName.isEmpty()) {
         m_databaseWidget->showErrorMessage(tr("Database must be saved first"));
         return false;
@@ -119,21 +118,21 @@ bool DatabaseOperationsManager::saveBackup()
 
     QFileInfo dbFileInfo(fileName);
     QString backupFileName = QString("%1/%2_backup_%3.%4")
-                                .arg(dbFileInfo.absolutePath())
-                                .arg(dbFileInfo.baseName())
-                                .arg(QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss"))
-                                .arg(dbFileInfo.completeSuffix());
+                                 .arg(dbFileInfo.absolutePath())
+                                 .arg(dbFileInfo.baseName())
+                                 .arg(QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss"))
+                                 .arg(dbFileInfo.completeSuffix());
 
     QString errorMessage;
     bool success = performSave(errorMessage, backupFileName);
-    
+
     if (!success && !errorMessage.isEmpty()) {
         m_databaseWidget->showErrorMessage(tr("Failed to create backup: %1").arg(errorMessage));
     } else if (success) {
-        m_databaseWidget->showMessage(tr("Backup created successfully: %1").arg(backupFileName), 
-                                       MessageWidget::Information);
+        m_databaseWidget->showMessage(tr("Backup created successfully: %1").arg(backupFileName),
+                                      MessageWidget::Information);
     }
-    
+
     return success;
 }
 
@@ -144,19 +143,18 @@ bool DatabaseOperationsManager::lock()
     }
 
     auto db = m_databaseWidget->database();
-    
+
     if (db->isModified()) {
-        auto result = MessageBox::question(
-            m_databaseWidget,
-            tr("Lock Database"),
-            tr("The database has unsaved changes. Save before locking?"),
-            MessageBox::Save | MessageBox::Discard | MessageBox::Cancel,
-            MessageBox::Save);
+        auto result = MessageBox::question(m_databaseWidget,
+                                           tr("Lock Database"),
+                                           tr("The database has unsaved changes. Save before locking?"),
+                                           MessageBox::Save | MessageBox::Discard | MessageBox::Cancel,
+                                           MessageBox::Save);
 
         if (result == MessageBox::Cancel) {
             return false;
         }
-        
+
         if (result == MessageBox::Save) {
             if (!save()) {
                 return false;
@@ -166,10 +164,10 @@ bool DatabaseOperationsManager::lock()
 
     // Signal that the database is about to be locked
     emit m_databaseWidget->databaseLockRequested();
-    
+
     // Switch to locked mode through the parent widget
     m_databaseWidget->switchToOpenDatabase();
-    
+
     emit lockCompleted(true);
     return true;
 }
@@ -222,16 +220,21 @@ bool DatabaseOperationsManager::performSave(QString& errorMessage, const QString
         QFileInfo dbFileInfo(db->filePath());
         backupFilePath.replace("{DB_FILENAME}", dbFileInfo.baseName());
         backupFilePath.replace("{YYYY}", QString::number(QDateTime::currentDateTime().date().year()));
-        backupFilePath.replace("{MM}", QString::number(QDateTime::currentDateTime().date().month()).rightJustified(2, '0'));
-        backupFilePath.replace("{DD}", QString::number(QDateTime::currentDateTime().date().day()).rightJustified(2, '0'));
-        backupFilePath.replace("{hh}", QString::number(QDateTime::currentDateTime().time().hour()).rightJustified(2, '0'));
-        backupFilePath.replace("{mm}", QString::number(QDateTime::currentDateTime().time().minute()).rightJustified(2, '0'));
-        backupFilePath.replace("{ss}", QString::number(QDateTime::currentDateTime().time().second()).rightJustified(2, '0'));
+        backupFilePath.replace("{MM}",
+                               QString::number(QDateTime::currentDateTime().date().month()).rightJustified(2, '0'));
+        backupFilePath.replace("{DD}",
+                               QString::number(QDateTime::currentDateTime().date().day()).rightJustified(2, '0'));
+        backupFilePath.replace("{hh}",
+                               QString::number(QDateTime::currentDateTime().time().hour()).rightJustified(2, '0'));
+        backupFilePath.replace("{mm}",
+                               QString::number(QDateTime::currentDateTime().time().minute()).rightJustified(2, '0'));
+        backupFilePath.replace("{ss}",
+                               QString::number(QDateTime::currentDateTime().time().second()).rightJustified(2, '0'));
     }
 
     bool success = false;
     const QString saveFileName = fileName.isEmpty() ? db->filePath() : fileName;
-    
+
     if (!fileName.isEmpty()) {
         success = db->saveAs(saveFileName, saveAction, backupFilePath, &errorMessage);
     } else {
@@ -256,4 +259,3 @@ bool DatabaseOperationsManager::performSave(QString& errorMessage, const QString
 
     return success;
 }
-

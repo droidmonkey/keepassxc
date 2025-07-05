@@ -18,8 +18,8 @@
 #ifndef KEEPASSX_ENTRYOPERATIONSMANAGER_H
 #define KEEPASSX_ENTRYOPERATIONSMANAGER_H
 
-#include <QObject>
 #include <QList>
+#include <QObject>
 
 class DatabaseWidget;
 class Entry;
@@ -27,10 +27,10 @@ class QAction;
 
 /**
  * @brief Manages entry operations for DatabaseWidget
- * 
+ *
  * This class extracts entry-specific operations (CRUD, clipboard, etc.)
  * from the DatabaseWidget to improve separation of concerns and maintainability.
- * 
+ *
  * Responsibilities:
  * - Entry creation, deletion, and modification
  * - Clipboard operations (copy username, password, etc.)
@@ -87,8 +87,6 @@ public:
     void setClipboardTextAndMinimize(const QString& text);
     void openUrl();
     void openUrlForEntry(Entry* entry);
-
-
 
     // Icon and favicon operations
     void downloadSelectedFavicons();

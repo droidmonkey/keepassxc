@@ -60,10 +60,10 @@ void EntryOperationsManager::createEntry()
     auto entry = new Entry();
     entry->setUuid(QUuid::createUuid());
     entry->setGroup(m_databaseWidget->currentGroup());
-    
+
     // Switch to entry edit mode
     m_databaseWidget->switchToEntryEdit(entry, true);
-    
+
     emit entryOperationCompleted(tr("Entry created"), true);
 }
 
@@ -76,10 +76,10 @@ void EntryOperationsManager::cloneEntry()
 
     auto clonedEntry = currentEntry->clone(Entry::CloneNewUuid);
     clonedEntry->setGroup(currentEntry->group());
-    
+
     // Switch to entry edit mode for the cloned entry
     m_databaseWidget->switchToEntryEdit(clonedEntry, true);
-    
+
     emit entryOperationCompleted(tr("Entry cloned"), true);
 }
 
@@ -107,7 +107,7 @@ void EntryOperationsManager::restoreSelectedEntries()
             entry->setGroup(rootGroup);
         }
     }
-    
+
     emit entryOperationCompleted(tr("Entries restored"), true);
 }
 
@@ -121,7 +121,7 @@ void EntryOperationsManager::expireSelectedEntries()
     for (auto entry : selectedEntries) {
         entry->setExpiryTime(QDateTime::currentDateTime());
     }
-    
+
     emit entryOperationCompleted(tr("Entries expired"), true);
 }
 
@@ -132,12 +132,11 @@ void EntryOperationsManager::deleteEntries(QList<Entry*> entries, bool confirm)
     }
 
     if (confirm) {
-        auto result = MessageBox::question(
-            m_databaseWidget,
-            tr("Delete Entries"),
-            tr("Are you sure you want to delete %1 entries?").arg(entries.size()),
-            MessageBox::Delete | MessageBox::Cancel,
-            MessageBox::Cancel);
+        auto result = MessageBox::question(m_databaseWidget,
+                                           tr("Delete Entries"),
+                                           tr("Are you sure you want to delete %1 entries?").arg(entries.size()),
+                                           MessageBox::Delete | MessageBox::Cancel,
+                                           MessageBox::Cancel);
 
         if (result != MessageBox::Delete) {
             return;
@@ -145,7 +144,7 @@ void EntryOperationsManager::deleteEntries(QList<Entry*> entries, bool confirm)
     }
 
     GuiTools::deleteEntriesResolveReferences(m_databaseWidget, entries, confirm);
-    
+
     emit entryOperationCompleted(tr("Entries deleted"), true);
 }
 
@@ -264,7 +263,7 @@ void EntryOperationsManager::copyAttribute(QAction* action)
 
     QString attributeKey = action->data().toString();
     QString attributeValue = currentEntry->attributes()->value(attributeKey);
-    
+
     setClipboardTextAndMinimize(attributeValue);
     emit clipboardContentSet(tr("Custom attribute: %1").arg(attributeKey));
 }
@@ -321,7 +320,7 @@ void EntryOperationsManager::copyPasswordTotp()
     if (currentEntry->hasTotp()) {
         combined += currentEntry->totp();
     }
-    
+
     setClipboardTextAndMinimize(combined);
     emit clipboardContentSet(tr("Password with TOTP"));
 }
@@ -340,7 +339,7 @@ void EntryOperationsManager::setupTotp()
 void EntryOperationsManager::performAutoType(const QString& sequence)
 {
     Q_UNUSED(sequence) // For now, ignore the sequence parameter
-    
+
     auto currentEntry = getCurrentEntry();
     if (!currentEntry) {
         return;
@@ -377,7 +376,7 @@ void EntryOperationsManager::performAutoTypeTOTP()
 void EntryOperationsManager::setClipboardTextAndMinimize(const QString& text)
 {
     clipboard()->setText(text);
-    
+
     // Minimize main window if configured
     auto mainWindow = m_databaseWidget->findChild<QWidget*>("MainWindow");
     if (mainWindow) {
@@ -404,8 +403,6 @@ void EntryOperationsManager::openUrlForEntry(Entry* entry)
         QDesktopServices::openUrl(QUrl(url));
     }
 }
-
-
 
 void EntryOperationsManager::downloadSelectedFavicons()
 {
@@ -467,4 +464,3 @@ void EntryOperationsManager::performIconDownloads(const QList<Entry*>& entries, 
     Q_UNUSED(downloadInBackground)
 #endif
 }
-

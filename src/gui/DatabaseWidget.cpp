@@ -251,14 +251,14 @@ DatabaseWidget::DatabaseWidget(QSharedPointer<Database> db, QWidget* parent)
     m_viewStateManager.reset(new ViewStateManager(this));
 
     // Connect manager signals
-    connect(m_databaseOperationsManager.data(), &DatabaseOperationsManager::saveCompleted,
-            this, &DatabaseWidget::databaseSaved);
-    connect(m_searchManager.data(), &SearchManager::searchModeActivated,
-            this, &DatabaseWidget::searchModeActivated);
-    connect(m_searchManager.data(), &SearchManager::listModeActivated,
-            this, &DatabaseWidget::listModeActivated);
-    connect(m_viewStateManager.data(), &ViewStateManager::currentModeChanged,
-            this, &DatabaseWidget::currentModeChanged);
+    connect(m_databaseOperationsManager.data(),
+            &DatabaseOperationsManager::saveCompleted,
+            this,
+            &DatabaseWidget::databaseSaved);
+    connect(m_searchManager.data(), &SearchManager::searchModeActivated, this, &DatabaseWidget::searchModeActivated);
+    connect(m_searchManager.data(), &SearchManager::listModeActivated, this, &DatabaseWidget::listModeActivated);
+    connect(
+        m_viewStateManager.data(), &ViewStateManager::currentModeChanged, this, &DatabaseWidget::currentModeChanged);
 
 #ifdef WITH_XC_KEESHARE
     // We need to reregister the database to allow exports

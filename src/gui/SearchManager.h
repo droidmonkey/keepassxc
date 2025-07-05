@@ -19,8 +19,8 @@
 #define KEEPASSX_SEARCHMANAGER_H
 
 #include <QObject>
-#include <QString>
 #include <QScopedPointer>
+#include <QString>
 
 class DatabaseWidget;
 class EntrySearcher;
@@ -28,10 +28,10 @@ class QAction;
 
 /**
  * @brief Manages search functionality for DatabaseWidget
- * 
+ *
  * This class extracts search-related operations from the DatabaseWidget
  * to improve separation of concerns and maintainability.
- * 
+ *
  * Responsibilities:
  * - Text-based entry searching
  * - Search state management (active/inactive)
@@ -167,13 +167,13 @@ private:
      */
     void updateSearchState();
 
-    DatabaseWidget* m_databaseWidget;           ///< Reference to parent DatabaseWidget
+    DatabaseWidget* m_databaseWidget; ///< Reference to parent DatabaseWidget
     QScopedPointer<EntrySearcher> m_entrySearcher; ///< Search engine instance
-    
-    QString m_lastSearchText;                   ///< Last executed search text
-    QString m_searchStringForAutoType;          ///< Search string for auto-type
-    bool m_searchLimitGroup;                    ///< Whether search is limited to current group
-    bool m_searchActive;                        ///< Whether search is currently active
+
+    QString m_lastSearchText; ///< Last executed search text
+    QString m_searchStringForAutoType; ///< Search string for auto-type
+    bool m_searchLimitGroup; ///< Whether search is limited to current group
+    bool m_searchActive; ///< Whether search is currently active
 
     Q_DISABLE_COPY(SearchManager)
 };
