@@ -122,6 +122,10 @@ set(gui_SOURCES
         gui/DatabaseTabWidget.cpp
         gui/DatabaseWidget.cpp
         gui/DatabaseWidgetStateSync.cpp
+        gui/DatabaseOperationsManager.cpp
+        gui/EntryOperationsManager.cpp
+        gui/SearchManager.cpp
+        gui/ViewStateManager.cpp
         gui/EntryPreviewWidget.cpp
         gui/DialogyWidget.cpp
         gui/EditWidget.cpp

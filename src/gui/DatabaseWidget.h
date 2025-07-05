@@ -48,6 +48,12 @@ class ElidedLabel;
 class RemoteSettings;
 struct RemoteParams;
 
+// New manager classes for improved separation of concerns
+class DatabaseOperationsManager;
+class EntryOperationsManager;
+class SearchManager;
+class ViewStateManager;
+
 namespace Ui
 {
     class SearchWidget;
@@ -59,6 +65,10 @@ class DatabaseWidget : public QStackedWidget
 
 public:
     friend class DatabaseOpenDialog;
+    friend class DatabaseOperationsManager;
+    friend class EntryOperationsManager;
+    friend class SearchManager;
+    friend class ViewStateManager;
 
     enum class Mode
     {
@@ -347,6 +357,12 @@ private:
 
     // Auto-Type related
     QString m_searchStringForAutoType;
+
+    // Manager components for improved separation of concerns
+    QScopedPointer<DatabaseOperationsManager> m_databaseOperationsManager;
+    QScopedPointer<EntryOperationsManager> m_entryOperationsManager;
+    QScopedPointer<SearchManager> m_searchManager;
+    QScopedPointer<ViewStateManager> m_viewStateManager;
 };
 
 #endif // KEEPASSX_DATABASEWIDGET_H
