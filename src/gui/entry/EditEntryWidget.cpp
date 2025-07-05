@@ -24,6 +24,11 @@
 #include "ui_EditEntryWidgetMain.h"
 #include "ui_EditEntryWidgetSSHAgent.h"
 
+#include "EntryDataCoordinator.h"
+#ifdef WITH_XC_SSHAGENT
+#include "SSHAgentPageController.h"
+#endif
+
 #include <QColorDialog>
 #include <QDesktopServices>
 #include <QSortFilterProxyModel>
@@ -94,7 +99,16 @@ EditEntryWidget::EditEntryWidget(QWidget* parent)
     , m_autoTypeWindowSequenceGroup(new QButtonGroup(this))
     , m_usernameCompleter(new QCompleter(this))
     , m_usernameCompleterModel(new QStringListModel(this))
+    , m_dataCoordinator(new EntryDataCoordinator(this))
+#ifdef WITH_XC_SSHAGENT
+    , m_sshAgentController(new SSHAgentPageController(this))
+#endif
 {
+    // Initialize data coordinator with controllers
+#ifdef WITH_XC_SSHAGENT
+    m_dataCoordinator->registerPageController(m_sshAgentController);
+#endif
+
     setupMain();
     setupAdvanced();
     setupIcon();
@@ -588,34 +602,20 @@ void EditEntryWidget::updateHistoryButtons(const QModelIndex& current, const QMo
 void EditEntryWidget::setupSSHAgent()
 {
     m_pendingPrivateKey = "";
-    m_sshAgentUi->setupUi(m_sshAgentWidget);
+    
+    // Use the new SSH Agent page controller
+    // Instead of manually setting up UI, delegate to the controller
+    connect(m_sshAgentController, &SSHAgentPageController::dataChanged,
+            this, [this]() {
+                setModified(true);
+            });
+    connect(m_sshAgentController, &SSHAgentPageController::errorOccurred,
+            this, [this](const QString& message) {
+                showMessage(message, MessageWidget::Error);
+            });
 
-    QFont fixedFont = Font::fixedFont();
-    m_sshAgentUi->fingerprintTextLabel->setFont(fixedFont);
-    m_sshAgentUi->commentTextLabel->setFont(fixedFont);
-    m_sshAgentUi->publicKeyEdit->setFont(fixedFont);
-
-    // clang-format off
-    connect(m_sshAgentUi->attachmentRadioButton, &QRadioButton::clicked,
-            this, &EditEntryWidget::updateSSHAgentKeyInfo);
-    connect(m_sshAgentUi->attachmentComboBox, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
-            this, &EditEntryWidget::updateSSHAgentAttachment);
-    connect(m_sshAgentUi->externalFileRadioButton, &QRadioButton::clicked,
-            this, &EditEntryWidget::updateSSHAgentKeyInfo);
-    connect(m_sshAgentUi->externalFileEdit, &QLineEdit::textChanged, this, &EditEntryWidget::updateSSHAgentKeyInfo);
-    connect(m_sshAgentUi->browseButton, &QPushButton::clicked, this, &EditEntryWidget::browsePrivateKey);
-    connect(m_sshAgentUi->addToAgentButton, &QPushButton::clicked, this, &EditEntryWidget::addKeyToAgent);
-    connect(m_sshAgentUi->removeFromAgentButton, &QPushButton::clicked, this, &EditEntryWidget::removeKeyFromAgent);
-    connect(m_sshAgentUi->clearAgentButton, &QPushButton::clicked, this, &EditEntryWidget::clearAgent);
-    connect(m_sshAgentUi->decryptButton, &QPushButton::clicked, this, &EditEntryWidget::decryptPrivateKey);
-    connect(m_sshAgentUi->copyToClipboardButton, &QPushButton::clicked, this, &EditEntryWidget::copyPublicKey);
-    connect(m_sshAgentUi->generateButton, &QPushButton::clicked, this, &EditEntryWidget::generatePrivateKey);
-
-    connect(m_attachments.data(), &EntryAttachments::modified,
-            this, &EditEntryWidget::updateSSHAgentAttachments);
-    // clang-format on
-
-    addPage(tr("SSH Agent"), icons()->icon("utilities-terminal"), m_sshAgentWidget);
+    // Replace the old widget with the controller's widget
+    addPage(tr("SSH Agent"), icons()->icon("utilities-terminal"), m_sshAgentController->widget());
 }
 
 void EditEntryWidget::setSSHAgentSettings()
@@ -952,6 +952,9 @@ void EditEntryWidget::setForms(Entry* entry, bool restore)
     m_attachments->copyDataFrom(entry->attachments());
     m_customData->copyDataFrom(entry->customData());
 
+    // Load entry into data coordinator and page controllers
+    m_dataCoordinator->loadEntry(entry);
+
     m_mainUi->titleEdit->setReadOnly(m_history);
     m_mainUi->usernameComboBox->lineEdit()->setReadOnly(m_history);
     m_mainUi->urlEdit->setReadOnly(m_history);
@@ -1257,7 +1260,7 @@ void EditEntryWidget::acceptEntry()
     }
 }
 
-void EditEntryWidget::updateEntryData(Entry* entry) const
+void EditEntryWidget::updateEntryData(Entry* entry)
 {
     QRegularExpression newLineRegex("(?:\r?\n|\r)");
 
@@ -1312,11 +1315,8 @@ void EditEntryWidget::updateEntryData(Entry* entry) const
 
     entry->autoTypeAssociations()->copyDataFrom(m_autoTypeAssoc);
 
-#ifdef WITH_XC_SSHAGENT
-    if (sshAgent()->isEnabled()) {
-        m_sshAgentSettings.toEntry(entry);
-    }
-#endif
+    // Save data from all page controllers
+    m_dataCoordinator->saveEntry();
 }
 
 void EditEntryWidget::updateBrowserIntegrationCheckbox(QCheckBox* checkBox,

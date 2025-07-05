@@ -60,7 +60,6 @@ signals:
     void copyPublicKeyRequested();
 
 private slots:
-    void onEnabledChanged();
     void onSettingsChanged();
     void onModelDataChanged();
     void onModelKeyDataChanged();

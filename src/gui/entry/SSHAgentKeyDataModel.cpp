@@ -22,7 +22,6 @@
 #include "core/Entry.h"
 #include "core/EntryAttachments.h"
 #include "sshagent/OpenSSHKey.h"
-#include "sshagent/OpenSSHKeyGenDialog.h"
 #include "sshagent/SSHAgent.h"
 #include <QDialog>
 #include <QWidget>
@@ -204,59 +203,50 @@ void SSHAgentKeyDataModel::setLifetimeConstraintDuration(int duration)
     }
 }
 
-bool SSHAgentKeyDataModel::generateNewKey(const QString& type, int length, const QString& comment)
+bool SSHAgentKeyDataModel::processGeneratedKey(const OpenSSHKey& key)
 {
     if (!m_entry) {
         emit errorOccurred(tr("No entry loaded"));
         return false;
     }
 
-    auto dialog = new OpenSSHKeyGenDialog(qobject_cast<QWidget*>(parent()));
-    OpenSSHKey key;
-    dialog->setKey(&key);
+    // Cast away const since privateKey() modifies internal state but is marked const
+    OpenSSHKey& mutableKey = const_cast<OpenSSHKey&>(key);
 
-    bool result = false;
-    if (dialog->exec() == QDialog::Accepted) {
-        // Use the pattern from EditEntryWidget::generatePrivateKey
-        QString keyPrefix = key.type();
-        if (keyPrefix.startsWith("ecdsa")) {
-            keyPrefix = "id_ecdsa";
-        } else {
-            keyPrefix.replace("ssh-", "id_");
+    // Use the pattern from EditEntryWidget::generatePrivateKey
+    QString keyPrefix = key.type();
+    if (keyPrefix.startsWith("ecdsa")) {
+        keyPrefix = "id_ecdsa";
+    } else {
+        keyPrefix.replace("ssh-", "id_");
+    }
+
+    QString keyName = keyPrefix;
+    for (int i = 0; i < 10; i++) {
+        if (i > 0) {
+            keyName = keyPrefix + "." + QString::number(i);
         }
 
-        QString keyName = keyPrefix;
-        for (int i = 0; i < 10; i++) {
-            if (i > 0) {
-                keyName = keyPrefix + "." + QString::number(i);
-            }
-
-            if (!m_entry->attachments()->hasKey(keyName)) {
-                m_entry->attachments()->set(keyName, key.privateKey().toUtf8());
-                
-                // Update settings to use the new attachment
-                m_settings.setSelectedType("attachment");
-                m_settings.setAttachmentName(keyName);
-                
-                // Reload key information
-                extractKeyFromEntry();
-                updateKeyInfo();
-                
-                emit keyDataChanged();
-                emit dataChanged();
-                
-                result = true;
-                break;
-            }
-        }
-        
-        if (!result) {
-            emit errorOccurred(tr("Could not find available attachment name for key"));
+        if (!m_entry->attachments()->hasKey(keyName)) {
+            m_entry->attachments()->set(keyName, mutableKey.privateKey().toUtf8());
+            
+            // Update settings to use the new attachment
+            m_settings.setSelectedType("attachment");
+            m_settings.setAttachmentName(keyName);
+            
+            // Reload key information
+            extractKeyFromEntry();
+            updateKeyInfo();
+            
+            emit keyDataChanged();
+            emit dataChanged();
+            
+            return true;
         }
     }
     
-    dialog->deleteLater();
-    return result;
+    emit errorOccurred(tr("Could not find available attachment name for key"));
+    return false;
 }
 
 bool SSHAgentKeyDataModel::validateCurrentKey()

@@ -83,7 +83,7 @@ public:
     void setLifetimeConstraintDuration(int duration);
 
     // Key operations
-    bool generateNewKey(const QString& type, int length, const QString& comment);
+    bool processGeneratedKey(const OpenSSHKey& key);
     bool validateCurrentKey();
     bool addKeyToAgent();
     bool removeKeyFromAgent();

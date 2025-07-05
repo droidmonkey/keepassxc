@@ -62,18 +62,14 @@ void SSHAgentPageWidget::updateFromModel()
     }
 
     // Update settings controls
-    m_ui->enabledCheckBox->setChecked(m_dataModel->isEnabled());
-    m_ui->addAtDatabaseOpenCheckBox->setChecked(m_dataModel->addAtDatabaseOpen());
-    m_ui->removeAtDatabaseCloseCheckBox->setChecked(m_dataModel->removeAtDatabaseClose());
+    m_ui->addKeyToAgentCheckBox->setChecked(m_dataModel->addAtDatabaseOpen());
+    m_ui->removeKeyFromAgentCheckBox->setChecked(m_dataModel->removeAtDatabaseClose());
     m_ui->requireUserConfirmationCheckBox->setChecked(m_dataModel->requireUserConfirmation());
-    m_ui->useLifetimeConstraintCheckBox->setChecked(m_dataModel->useLifetimeConstraint());
-    m_ui->lifetimeConstraintSpinBox->setValue(m_dataModel->lifetimeConstraintDuration());
+    m_ui->lifetimeCheckBox->setChecked(m_dataModel->useLifetimeConstraint());
+    m_ui->lifetimeSpinBox->setValue(m_dataModel->lifetimeConstraintDuration());
 
-    // Update UI state
-    bool enabled = m_dataModel->isEnabled();
-    m_ui->settingsGroupBox->setEnabled(enabled);
-    m_ui->keyInfoGroupBox->setEnabled(enabled);
-    m_ui->actionsGroupBox->setEnabled(enabled);
+    // Update UI state based on enabled status
+    // The SSH Agent UI doesn't have a separate enabled checkbox - it's always enabled if WITH_XC_SSHAGENT is on
 
     updateKeyInfoDisplay();
     updateButtonStates();
@@ -82,17 +78,15 @@ void SSHAgentPageWidget::updateFromModel()
 void SSHAgentPageWidget::connectSignals()
 {
     // Settings connections
-    connect(m_ui->enabledCheckBox, &QCheckBox::toggled,
-            this, &SSHAgentPageWidget::onEnabledChanged);
-    connect(m_ui->addAtDatabaseOpenCheckBox, &QCheckBox::toggled,
+    connect(m_ui->addKeyToAgentCheckBox, &QCheckBox::toggled,
             this, &SSHAgentPageWidget::onSettingsChanged);
-    connect(m_ui->removeAtDatabaseCloseCheckBox, &QCheckBox::toggled,
+    connect(m_ui->removeKeyFromAgentCheckBox, &QCheckBox::toggled,
             this, &SSHAgentPageWidget::onSettingsChanged);
     connect(m_ui->requireUserConfirmationCheckBox, &QCheckBox::toggled,
             this, &SSHAgentPageWidget::onSettingsChanged);
-    connect(m_ui->useLifetimeConstraintCheckBox, &QCheckBox::toggled,
+    connect(m_ui->lifetimeCheckBox, &QCheckBox::toggled,
             this, &SSHAgentPageWidget::onSettingsChanged);
-    connect(m_ui->lifetimeConstraintSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
+    connect(m_ui->lifetimeSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
             this, &SSHAgentPageWidget::onSettingsChanged);
 
     // Action button connections
@@ -106,24 +100,17 @@ void SSHAgentPageWidget::connectSignals()
             this, &SSHAgentPageWidget::copyPublicKeyRequested);
 }
 
-void SSHAgentPageWidget::onEnabledChanged()
-{
-    if (m_dataModel) {
-        m_dataModel->setEnabled(m_ui->enabledCheckBox->isChecked());
-    }
-}
-
 void SSHAgentPageWidget::onSettingsChanged()
 {
     if (!m_dataModel) {
         return;
     }
 
-    m_dataModel->setAddAtDatabaseOpen(m_ui->addAtDatabaseOpenCheckBox->isChecked());
-    m_dataModel->setRemoveAtDatabaseClose(m_ui->removeAtDatabaseCloseCheckBox->isChecked());
+    m_dataModel->setAddAtDatabaseOpen(m_ui->addKeyToAgentCheckBox->isChecked());
+    m_dataModel->setRemoveAtDatabaseClose(m_ui->removeKeyFromAgentCheckBox->isChecked());
     m_dataModel->setRequireUserConfirmation(m_ui->requireUserConfirmationCheckBox->isChecked());
-    m_dataModel->setUseLifetimeConstraint(m_ui->useLifetimeConstraintCheckBox->isChecked());
-    m_dataModel->setLifetimeConstraintDuration(m_ui->lifetimeConstraintSpinBox->value());
+    m_dataModel->setUseLifetimeConstraint(m_ui->lifetimeCheckBox->isChecked());
+    m_dataModel->setLifetimeConstraintDuration(m_ui->lifetimeSpinBox->value());
 }
 
 void SSHAgentPageWidget::onModelDataChanged()
@@ -149,15 +136,16 @@ void SSHAgentPageWidget::updateKeyInfoDisplay()
     }
 
     if (m_dataModel->hasValidKey()) {
-        m_ui->keyTypeTextLabel->setText(m_dataModel->keyType());
+        // No keyTypeTextLabel in the UI, comment this out for now
+        // m_ui->keyTypeTextLabel->setText(m_dataModel->keyType());
         m_ui->fingerprintTextLabel->setText(m_dataModel->fingerprint());
-        m_ui->publicKeyTextEdit->setPlainText(m_dataModel->publicKey());
-        m_ui->commentEdit->setText(m_dataModel->comment());
+        m_ui->publicKeyEdit->setPlainText(m_dataModel->publicKey());
+        m_ui->commentTextLabel->setText(m_dataModel->comment());
     } else {
-        m_ui->keyTypeTextLabel->setText(tr("No key loaded"));
+        // m_ui->keyTypeTextLabel->setText(tr("No key loaded"));
         m_ui->fingerprintTextLabel->clear();
-        m_ui->publicKeyTextEdit->clear();
-        m_ui->commentEdit->clear();
+        m_ui->publicKeyEdit->clear();
+        m_ui->commentTextLabel->clear();
     }
 }
 

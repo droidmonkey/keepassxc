@@ -24,6 +24,7 @@
 #include "core/Database.h"
 #include "gui/Clipboard.h"
 #include "gui/MessageBox.h"
+#include "sshagent/OpenSSHKey.h"
 #include "sshagent/OpenSSHKeyGenDialog.h"
 
 SSHAgentPageController::SSHAgentPageController(QObject* parent)
@@ -112,16 +113,17 @@ void SSHAgentPageController::onGenerateKey()
         return;
     }
 
-    OpenSSHKeyGenDialog dialog(m_widget);
-    if (dialog.exec() == QDialog::Accepted) {
-        QString keyType = dialog.keyType();
-        int keyLength = dialog.keyLength();
-        QString comment = dialog.comment();
+    auto dialog = new OpenSSHKeyGenDialog(m_widget);
+    OpenSSHKey key;
+    dialog->setKey(&key);
 
-        if (m_dataModel->generateNewKey(keyType, keyLength, comment)) {
-            updateUI();
-        }
+    if (dialog->exec()) {
+        // Process the generated key - delegate to data model
+        m_dataModel->processGeneratedKey(key);
+        updateUI();
     }
+    
+    dialog->deleteLater();
 }
 
 void SSHAgentPageController::onCopyPublicKey()

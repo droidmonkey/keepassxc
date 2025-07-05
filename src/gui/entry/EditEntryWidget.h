@@ -39,6 +39,7 @@ class EntryAttributes;
 class EntryAttachments;
 class EntryAttributesModel;
 class EntryHistoryModel;
+class EntryDataCoordinator;
 class QButtonGroup;
 class QMenu;
 class QScrollArea;
@@ -47,6 +48,7 @@ class QStringListModel;
 #ifdef WITH_XC_SSHAGENT
 #include "sshagent/KeeAgentSettings.h"
 class OpenSSHKey;
+class SSHAgentPageController;
 #endif
 #ifdef WITH_XC_BROWSER
 class EntryURLModel;
@@ -168,7 +170,7 @@ private:
 
     void setForms(Entry* entry, bool restore = false);
     QMenu* createPresetsMenu();
-    void updateEntryData(Entry* entry) const;
+    void updateEntryData(Entry* entry);
     void updateBrowserIntegrationCheckbox(QCheckBox* checkBox, bool enabled, bool value, const QString& option);
 #ifdef WITH_XC_SSHAGENT
     bool getOpenSSHKey(OpenSSHKey& key, bool decrypt = false);
@@ -183,7 +185,9 @@ private:
 
     bool m_create;
     bool m_history;
+    EntryDataCoordinator* const m_dataCoordinator;
 #ifdef WITH_XC_SSHAGENT
+    SSHAgentPageController* const m_sshAgentController;
     KeeAgentSettings m_sshAgentSettings;
     QString m_pendingPrivateKey;
 #endif
