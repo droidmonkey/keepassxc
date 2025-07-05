@@ -851,3 +851,155 @@ void TestEntry::testPreviousParentGroup()
     QVERIFY(entry->previousParentGroupUuid() == group1->uuid());
     QVERIFY(entry->previousParentGroup() == group1);
 }
+
+void TestEntry::testMergeEntries()
+{
+    // Create two entries with different data
+    auto entry1 = new Entry();
+    entry1->setTitle("Entry 1");
+    entry1->setUsername("user1");
+    entry1->setPassword("pass1");
+    entry1->setUrl("https://example1.com");
+    entry1->setNotes("Notes from entry 1");
+    entry1->addTag("tag1");
+    entry1->addTag("common");
+
+    auto entry2 = new Entry();
+    entry2->setTitle("Entry 2");
+    entry2->setUsername("user2");
+    entry2->setPassword("pass2");
+    entry2->setUrl("https://example2.com");
+    entry2->setNotes("Notes from entry 2");
+    entry2->addTag("tag2");
+    entry2->addTag("common");
+
+    // Add custom attributes
+    entry1->attributes()->set("Custom1", "Value1");
+    entry2->attributes()->set("Custom2", "Value2");
+
+    // Merge the entries
+    Entry* merged = Entry::mergeEntries(entry1, entry2);
+
+    // Verify merged entry contains data from both entries
+    QVERIFY(merged != nullptr);
+    QCOMPARE(merged->title(), QString("Entry 1"));
+    QCOMPARE(merged->username(), QString("user1"));
+    QCOMPARE(merged->password(), QString("pass1"));
+    QCOMPARE(merged->url(), QString("https://example1.com"));
+
+    // Notes should be combined
+    QString expectedNotes = "Notes from entry 1\n\n--- Merged from second entry ---\nNotes from entry 2";
+    QCOMPARE(merged->notes(), expectedNotes);
+
+    // Check conflict resolution for other fields
+    QVERIFY(merged->attributes()->hasKey("Merge_Conflict_Title_2"));
+    QCOMPARE(merged->attributes()->value("Merge_Conflict_Title_2"), QString("Entry 2"));
+
+    QVERIFY(merged->attributes()->hasKey("Merge_Conflict_UserName_2"));
+    QCOMPARE(merged->attributes()->value("Merge_Conflict_UserName_2"), QString("user2"));
+
+    // Check custom attributes are merged
+    QVERIFY(merged->attributes()->hasKey("Custom1"));
+    QCOMPARE(merged->attributes()->value("Custom1"), QString("Value1"));
+    QVERIFY(merged->attributes()->hasKey("Custom2"));
+    QCOMPARE(merged->attributes()->value("Custom2"), QString("Value2"));
+
+    // Check tags are merged (common tag should appear only once)
+    QStringList tags = merged->tagList();
+    QVERIFY(tags.contains("tag1"));
+    QVERIFY(tags.contains("tag2"));
+    QVERIFY(tags.contains("common"));
+    QCOMPARE(tags.count("common"), 1);
+
+    delete entry1;
+    delete entry2;
+    delete merged;
+}
+
+void TestEntry::testMergeEntriesConflicts()
+{
+    // Test conflict resolution for custom attributes
+    auto entry1 = new Entry();
+    entry1->setTitle("Test Entry");
+    entry1->attributes()->set("CustomField", "Value1");
+    entry1->attributes()->set("UniqueField1", "Unique1");
+
+    auto entry2 = new Entry();
+    entry2->setTitle("Test Entry");
+    entry2->attributes()->set("CustomField", "Value2"); // Conflict
+    entry2->attributes()->set("UniqueField2", "Unique2");
+
+    Entry* merged = Entry::mergeEntries(entry1, entry2);
+
+    // Original custom field should keep first value
+    QCOMPARE(merged->attributes()->value("CustomField"), QString("Value1"));
+
+    // Conflicting value should be stored with suffix
+    QVERIFY(merged->attributes()->hasKey("CustomField_2"));
+    QCOMPARE(merged->attributes()->value("CustomField_2"), QString("Value2"));
+
+    // Unique fields should both be present
+    QCOMPARE(merged->attributes()->value("UniqueField1"), QString("Unique1"));
+    QCOMPARE(merged->attributes()->value("UniqueField2"), QString("Unique2"));
+
+    delete entry1;
+    delete entry2;
+    delete merged;
+}
+
+void TestEntry::testMergeEntriesAttachments()
+{
+    // Test attachment merging
+    auto entry1 = new Entry();
+    entry1->setTitle("Entry with attachments");
+    entry1->attachments()->set("file1.txt", QByteArray("Content of file 1"));
+    entry1->attachments()->set("common.txt", QByteArray("Content from entry 1"));
+
+    auto entry2 = new Entry();
+    entry2->setTitle("Entry with attachments");
+    entry2->attachments()->set("file2.txt", QByteArray("Content of file 2"));
+    entry2->attachments()->set("common.txt", QByteArray("Content from entry 2")); // Conflict
+
+    Entry* merged = Entry::mergeEntries(entry1, entry2);
+
+    // Unique attachments should be preserved
+    QVERIFY(merged->attachments()->hasKey("file1.txt"));
+    QCOMPARE(merged->attachments()->value("file1.txt"), QByteArray("Content of file 1"));
+    QVERIFY(merged->attachments()->hasKey("file2.txt"));
+    QCOMPARE(merged->attachments()->value("file2.txt"), QByteArray("Content of file 2"));
+
+    // Original common file should be preserved
+    QVERIFY(merged->attachments()->hasKey("common.txt"));
+    QCOMPARE(merged->attachments()->value("common.txt"), QByteArray("Content from entry 1"));
+
+    // Conflicting attachment should be renamed
+    QVERIFY(merged->attachments()->hasKey("common_2.txt"));
+    QCOMPARE(merged->attachments()->value("common_2.txt"), QByteArray("Content from entry 2"));
+
+    delete entry1;
+    delete entry2;
+    delete merged;
+}
+
+void TestEntry::testMergeEntriesNullInput()
+{
+    // Test null input handling
+    auto entry1 = new Entry();
+    entry1->setTitle("Test Entry");
+
+    // Test merging with null entries
+    Entry* merged1 = Entry::mergeEntries(nullptr, nullptr);
+    QVERIFY(merged1 == nullptr);
+
+    Entry* merged2 = Entry::mergeEntries(entry1, nullptr);
+    QVERIFY(merged2 != nullptr);
+    QCOMPARE(merged2->title(), QString("Test Entry"));
+
+    Entry* merged3 = Entry::mergeEntries(nullptr, entry1);
+    QVERIFY(merged3 != nullptr);
+    QCOMPARE(merged3->title(), QString("Test Entry"));
+
+    delete entry1;
+    delete merged2;
+    delete merged3;
+}

@@ -1679,3 +1679,244 @@ bool EntryData::equals(const EntryData& other, CompareItemOptions options) const
 
     return true;
 }
+
+Entry* Entry::mergeEntries(const Entry* entry1, const Entry* entry2)
+{
+    if (!entry1 && !entry2) {
+        return nullptr;
+    }
+    if (!entry1) {
+        return entry2->clone(Entry::CloneCopy);
+    }
+    if (!entry2) {
+        return entry1->clone(Entry::CloneCopy);
+    }
+
+    // Create a new entry based on the first entry
+    Entry* merged = entry1->clone(Entry::CloneCopy);
+
+    // Merge standard attributes with conflict resolution
+    mergeStandardAttributes(merged, entry1, entry2);
+
+    // Merge custom attributes
+    mergeCustomAttributes(merged, entry1, entry2);
+
+    // Merge attachments
+    mergeAttachments(merged, entry1, entry2);
+
+    // Merge auto-type associations
+    mergeAutoTypeAssociations(merged, entry1, entry2);
+
+    // Merge tags
+    mergeTags(merged, entry1, entry2);
+
+    // Merge history from both entries
+    mergeHistory(merged, entry1, entry2);
+
+    // Set appropriate time information
+    mergeTimeInfo(merged, entry1, entry2);
+
+    return merged;
+}
+
+void Entry::mergeStandardAttributes(Entry* merged, const Entry* entry1, const Entry* entry2)
+{
+    // Handle standard attributes with conflict resolution
+    const QStringList standardKeys = {EntryAttributes::TitleKey,
+                                      EntryAttributes::UserNameKey,
+                                      EntryAttributes::PasswordKey,
+                                      EntryAttributes::URLKey,
+                                      EntryAttributes::NotesKey};
+
+    for (const QString& key : standardKeys) {
+        QString value1 = entry1->attributes()->value(key);
+        QString value2 = entry2->attributes()->value(key);
+        bool protected1 = entry1->attributes()->isProtected(key);
+        bool protected2 = entry2->attributes()->isProtected(key);
+
+        if (value1 == value2) {
+            // Values are the same, keep the value and preserve protection if either was protected
+            merged->attributes()->set(key, value1, protected1 || protected2);
+        } else if (value1.isEmpty()) {
+            // Use value2 if value1 is empty
+            merged->attributes()->set(key, value2, protected2);
+        } else if (value2.isEmpty()) {
+            // Use value1 if value2 is empty (already set from clone)
+            continue;
+        } else {
+            // Both values exist and are different - merge them
+            QString mergedValue;
+            if (key == EntryAttributes::NotesKey) {
+                // For notes, combine with separator
+                mergedValue = value1 + "\n\n--- Merged from second entry ---\n" + value2;
+            } else {
+                // For other fields, use first value and store second as custom attribute
+                mergedValue = value1;
+                QString conflictKey = QString("Merge_Conflict_%1_2").arg(key);
+                merged->attributes()->set(conflictKey, value2, protected2);
+            }
+            merged->attributes()->set(key, mergedValue, protected1 || protected2);
+        }
+    }
+}
+
+void Entry::mergeCustomAttributes(Entry* merged, const Entry* entry1, const Entry* entry2)
+{
+    // Get all custom attributes from both entries
+    QList<QString> keys1 = entry1->attributes()->customKeys();
+    QList<QString> keys2 = entry2->attributes()->customKeys();
+
+    // Add custom attributes from entry2 that are not in entry1
+    for (const QString& key : keys2) {
+        if (!keys1.contains(key)) {
+            merged->attributes()->set(key, entry2->attributes()->value(key), entry2->attributes()->isProtected(key));
+        } else {
+            // Handle conflict - both entries have the same custom key
+            QString value1 = entry1->attributes()->value(key);
+            QString value2 = entry2->attributes()->value(key);
+
+            if (value1 != value2) {
+                // Values differ, create numbered versions
+                QString conflictKey = key + "_2";
+                int counter = 2;
+                while (merged->attributes()->hasKey(conflictKey)) {
+                    counter++;
+                    conflictKey = QString("%1_%2").arg(key).arg(counter);
+                }
+                merged->attributes()->set(conflictKey, value2, entry2->attributes()->isProtected(key));
+            }
+        }
+    }
+}
+
+void Entry::mergeAttachments(Entry* merged, const Entry* entry1, const Entry* entry2)
+{
+    // Add all attachments from entry2 that are not in entry1
+    QStringList keys1 = entry1->attachments()->keys();
+    QStringList keys2 = entry2->attachments()->keys();
+
+    for (const QString& key : keys2) {
+        if (!keys1.contains(key)) {
+            // No conflict, add the attachment
+            merged->attachments()->set(key, entry2->attachments()->value(key));
+        } else {
+            // Handle name conflict by adding suffix
+            QByteArray attachment1 = entry1->attachments()->value(key);
+            QByteArray attachment2 = entry2->attachments()->value(key);
+
+            if (attachment1 != attachment2) {
+                // Different content, rename the second attachment
+                QString newKey = key;
+                int dotIndex = newKey.lastIndexOf('.');
+                if (dotIndex != -1) {
+                    newKey.insert(dotIndex, "_2");
+                } else {
+                    newKey += "_2";
+                }
+
+                // Ensure uniqueness
+                int counter = 2;
+                while (merged->attachments()->hasKey(newKey)) {
+                    if (dotIndex != -1) {
+                        newKey = key;
+                        newKey.insert(dotIndex, QString("_%1").arg(++counter));
+                    } else {
+                        newKey = QString("%1_%2").arg(key).arg(++counter);
+                    }
+                }
+
+                merged->attachments()->set(newKey, attachment2);
+            }
+        }
+    }
+}
+
+void Entry::mergeAutoTypeAssociations(Entry* merged, const Entry* entry1, const Entry* entry2)
+{
+    // Add auto-type associations from entry2 that are not duplicates
+    const auto& associations1 = entry1->autoTypeAssociations()->getAll();
+    const auto& associations2 = entry2->autoTypeAssociations()->getAll();
+
+    for (const auto& assoc2 : associations2) {
+        bool isDuplicate = false;
+        for (const auto& assoc1 : associations1) {
+            if (assoc1.window == assoc2.window && assoc1.sequence == assoc2.sequence) {
+                isDuplicate = true;
+                break;
+            }
+        }
+
+        if (!isDuplicate) {
+            merged->autoTypeAssociations()->add(assoc2);
+        }
+    }
+}
+
+void Entry::mergeTags(Entry* merged, const Entry* entry1, const Entry* entry2)
+{
+    // Combine tags from both entries, removing duplicates
+    QStringList tags1 = entry1->tagList();
+    QStringList tags2 = entry2->tagList();
+
+    QSet<QString> mergedTags = Tools::asSet(tags1);
+    mergedTags.unite(Tools::asSet(tags2));
+
+    // Convert set back to list and join
+    QStringList mergedTagsList = mergedTags.values();
+    merged->setTags(mergedTagsList.join(", "));
+}
+
+void Entry::mergeHistory(Entry* merged, const Entry* entry1, const Entry* entry2)
+{
+    // Add history items from both entries
+    const auto& history1 = entry1->historyItems();
+    const auto& history2 = entry2->historyItems();
+
+    QList<Entry*> allHistory;
+
+    // Clone history items from entry1 (excluding already copied ones)
+    for (Entry* histItem : history1) {
+        Entry* clonedItem = histItem->clone(Entry::CloneNoFlags);
+        clonedItem->setUuid(merged->uuid());
+        allHistory.append(clonedItem);
+    }
+
+    // Clone history items from entry2
+    for (Entry* histItem : history2) {
+        Entry* clonedItem = histItem->clone(Entry::CloneNoFlags);
+        clonedItem->setUuid(merged->uuid());
+        allHistory.append(clonedItem);
+    }
+
+    // Sort by modification time and add to merged entry
+    std::sort(allHistory.begin(), allHistory.end(), [](const Entry* a, const Entry* b) {
+        return a->timeInfo().lastModificationTime() < b->timeInfo().lastModificationTime();
+    });
+
+    // Clear existing history and add merged history
+    merged->removeHistoryItems(merged->historyItems());
+    for (Entry* histItem : allHistory) {
+        merged->addHistoryItem(histItem);
+    }
+
+    // Truncate if necessary
+    merged->truncateHistory();
+}
+
+void Entry::mergeTimeInfo(Entry* merged, const Entry* entry1, const Entry* entry2)
+{
+    // Use the earliest creation time and latest modification time
+    TimeInfo timeInfo = merged->timeInfo();
+
+    QDateTime earliestCreation = qMin(entry1->timeInfo().creationTime(), entry2->timeInfo().creationTime());
+    QDateTime latestModification =
+        qMax(entry1->timeInfo().lastModificationTime(), entry2->timeInfo().lastModificationTime());
+    QDateTime latestAccess = qMax(entry1->timeInfo().lastAccessTime(), entry2->timeInfo().lastAccessTime());
+
+    timeInfo.setCreationTime(earliestCreation);
+    timeInfo.setLastModificationTime(latestModification);
+    timeInfo.setLastAccessTime(latestAccess);
+    timeInfo.setLocationChanged(Clock::currentDateTimeUtc());
+
+    merged->setTimeInfo(timeInfo);
+}

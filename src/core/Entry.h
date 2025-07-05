@@ -244,6 +244,17 @@ public:
      */
     Entry* clone(CloneFlags flags = CloneDefault) const;
     void copyDataFrom(const Entry* other);
+
+    /**
+     * Merges two disparate entries into a single entry, combining their fields
+     * and ensuring no data is lost. In case of duplicate fields, both values
+     * are preserved using a conflict resolution strategy.
+     *
+     * @param entry1 First entry to merge
+     * @param entry2 Second entry to merge
+     * @return A new Entry object containing the merged data
+     */
+    static Entry* mergeEntries(const Entry* entry1, const Entry* entry2);
     QString maskPasswordPlaceholders(const QString& str) const;
     Entry* resolveReference(const QString& str) const;
     QString resolveMultiplePlaceholders(const QString& str) const;
@@ -294,6 +305,15 @@ private:
 
     static QString buildReference(const QUuid& uuid, const QString& field);
     static EntryReferenceType referenceType(const QString& referenceStr);
+
+    // Helper methods for mergeEntries
+    static void mergeStandardAttributes(Entry* merged, const Entry* entry1, const Entry* entry2);
+    static void mergeCustomAttributes(Entry* merged, const Entry* entry1, const Entry* entry2);
+    static void mergeAttachments(Entry* merged, const Entry* entry1, const Entry* entry2);
+    static void mergeAutoTypeAssociations(Entry* merged, const Entry* entry1, const Entry* entry2);
+    static void mergeTags(Entry* merged, const Entry* entry1, const Entry* entry2);
+    static void mergeHistory(Entry* merged, const Entry* entry1, const Entry* entry2);
+    static void mergeTimeInfo(Entry* merged, const Entry* entry1, const Entry* entry2);
 
     template <class T> bool set(T& property, const T& value);
 
