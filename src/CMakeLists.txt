@@ -328,6 +328,7 @@ if(WITH_XC_FDOSECRETS)
 endif()
 
 add_subdirectory(thirdparty)
+add_subdirectory(transactional)
 
 set(autotype_SOURCES
         autotype/AutoType.cpp
