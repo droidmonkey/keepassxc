@@ -36,6 +36,7 @@
 #include "Application.h"
 #include "Clipboard.h"
 #include "MainWindowMenuManager.h"
+#include "MainWindowToolbarManager.h"
 #include "autotype/AutoType.h"
 #include "core/InactivityTimer.h"
 #include "core/Resources.h"
@@ -103,26 +104,15 @@ MainWindow::MainWindow()
 
     setAcceptDrops(true);
 
-    if (config()->get(Config::GUI_CompactMode).toBool()) {
-        m_ui->toolBar->setIconSize({20, 20});
-    }
+    // Initialize toolbar manager
+    m_toolbarManager = new MainWindowToolbarManager(m_ui.data(), &m_actionMultiplexer, this);
+    m_toolbarManager->initializeToolbar();
 
-    // Setup the search widget in the toolbar
+    // Setup the search widget
     m_searchWidget = new SearchWidget();
-    m_searchWidget->connectSignals(m_actionMultiplexer);
-    m_searchWidgetAction = m_ui->toolBar->addWidget(m_searchWidget);
-    m_searchWidgetAction->setEnabled(false);
+    m_searchWidgetAction = m_toolbarManager->setupSearchWidget(m_searchWidget);
 
     new QShortcut(QKeySequence::Find, this, SLOT(focusSearchWidget()));
-
-    connect(m_searchWidget, &SearchWidget::searchCanceled, this, [this] {
-        m_ui->toolBar->setExpanded(false);
-        m_ui->toolBar->setVisible(!config()->get(Config::GUI_HideToolbar).toBool());
-    });
-    connect(m_searchWidget, &SearchWidget::lostFocus, this, [this] {
-        m_ui->toolBar->setExpanded(false);
-        m_ui->toolBar->setVisible(!config()->get(Config::GUI_HideToolbar).toBool());
-    });
 
     // Initialize menu manager
     m_menuManager = new MainWindowMenuManager(m_ui.data(), m_ui->tabWidget, this);
@@ -135,30 +125,6 @@ MainWindow::MainWindow()
     connect(m_menuManager, &MainWindowMenuManager::clearLastDatabases, this, &MainWindow::clearLastDatabases);
 
     connect(m_ui->menuRemoteSync, &QMenu::aboutToShow, this, &MainWindow::updateRemoteSyncMenuEntries);
-
-    // Build Entry Level Auto-Type menu
-    auto autotypeMenu = new QMenu({}, this);
-    autotypeMenu->addAction(m_ui->actionEntryAutoTypeSequence);
-    autotypeMenu->addSeparator();
-    autotypeMenu->addAction(m_ui->actionEntryAutoTypeUsername);
-    autotypeMenu->addAction(m_ui->actionEntryAutoTypeUsernameEnter);
-    autotypeMenu->addAction(m_ui->actionEntryAutoTypePassword);
-    autotypeMenu->addAction(m_ui->actionEntryAutoTypePasswordEnter);
-    autotypeMenu->addAction(m_ui->actionEntryAutoTypeTOTP);
-    m_ui->actionEntryAutoType->setMenu(autotypeMenu);
-    auto autoTypeButton = qobject_cast<QToolButton*>(m_ui->toolBar->widgetForAction(m_ui->actionEntryAutoType));
-    if (autoTypeButton) {
-        autoTypeButton->setPopupMode(QToolButton::MenuButtonPopup);
-    }
-
-    auto databaseLockMenu = new QMenu({}, this);
-    databaseLockMenu->addAction(m_ui->actionLockAllDatabases);
-    m_ui->actionLockDatabaseToolbar->setMenu(databaseLockMenu);
-    auto databaseLockButton =
-        qobject_cast<QToolButton*>(m_ui->toolBar->widgetForAction(m_ui->actionLockDatabaseToolbar));
-    if (databaseLockButton) {
-        databaseLockButton->setPopupMode(QToolButton::MenuButtonPopup);
-    }
 
     restoreGeometry(config()->get(Config::GUI_MainWindowGeometry).toByteArray());
     restoreState(config()->get(Config::GUI_MainWindowState).toByteArray());
@@ -237,9 +203,6 @@ MainWindow::MainWindow()
     if (globalAutoTypeKey > 0 && globalAutoTypeModifiers > 0) {
         autoType()->registerGlobalShortcut(globalAutoTypeKey, globalAutoTypeModifiers);
     }
-
-    m_ui->toolbarSeparator->setVisible(false);
-    m_showToolbarSeparator = config()->get(Config::GUI_ApplicationTheme).toString() != "classic";
 
     m_ui->actionEntryAutoType->setVisible(autoType()->isAvailable());
     m_ui->actionAllowScreenCapture->setVisible(osUtils->canPreventScreenCapture());
@@ -432,10 +395,14 @@ MainWindow::MainWindow()
     connect(m_ui->tabWidget, SIGNAL(currentChanged(int)), SLOT(updateMenuActionState()));
     connect(m_ui->tabWidget, SIGNAL(databaseLocked(DatabaseWidget*)), SLOT(databaseStatusChanged(DatabaseWidget*)));
     connect(m_ui->tabWidget, SIGNAL(databaseUnlocked(DatabaseWidget*)), SLOT(databaseStatusChanged(DatabaseWidget*)));
-    connect(m_ui->tabWidget, SIGNAL(tabVisibilityChanged(bool)), SLOT(updateToolbarSeparatorVisibility()));
+    connect(m_ui->tabWidget,
+            SIGNAL(tabVisibilityChanged(bool)),
+            m_toolbarManager,
+            SLOT(updateToolbarSeparatorVisibility()));
     connect(m_ui->stackedWidget, SIGNAL(currentChanged(int)), SLOT(updateMenuActionState()));
     connect(m_ui->stackedWidget, SIGNAL(currentChanged(int)), SLOT(updateWindowTitle()));
-    connect(m_ui->stackedWidget, SIGNAL(currentChanged(int)), SLOT(updateToolbarSeparatorVisibility()));
+    connect(
+        m_ui->stackedWidget, SIGNAL(currentChanged(int)), m_toolbarManager, SLOT(updateToolbarSeparatorVisibility()));
     connect(m_ui->settingsWidget, SIGNAL(accepted()), SLOT(applySettingsChanges()));
     connect(m_ui->settingsWidget, SIGNAL(settingsReset()), SLOT(applySettingsChanges()));
     connect(m_ui->settingsWidget, SIGNAL(accepted()), SLOT(switchToDatabases()));
@@ -913,26 +880,6 @@ void MainWindow::updateMenuActionState()
 #endif
 
     m_searchWidgetAction->setEnabled(inDatabase);
-}
-
-void MainWindow::updateToolbarSeparatorVisibility()
-{
-    if (!m_showToolbarSeparator) {
-        m_ui->toolbarSeparator->setVisible(false);
-        return;
-    }
-
-    switch (m_ui->stackedWidget->currentIndex()) {
-    case DatabaseTabScreen:
-        m_ui->toolbarSeparator->setVisible(!m_ui->tabWidget->tabBar()->isVisible()
-                                           && m_ui->tabWidget->tabBar()->count() == 1);
-        break;
-    case SettingsScreen:
-        m_ui->toolbarSeparator->setVisible(true);
-        break;
-    default:
-        m_ui->toolbarSeparator->setVisible(false);
-    }
 }
 
 void MainWindow::updateWindowTitle()
@@ -1540,23 +1487,12 @@ void MainWindow::applySettingsChanges()
         m_inactivityTimer->deactivate();
     }
 
-    m_ui->actionShowToolbar->setChecked(!config()->get(Config::GUI_HideToolbar).toBool());
+    // Apply toolbar-related settings
+    m_toolbarManager->applyToolbarSettings();
+
+    // Apply menubar settings
     m_ui->actionShowMenubar->setChecked(!config()->get(Config::GUI_HideMenubar).toBool());
     m_ui->menubar->setHidden(config()->get(Config::GUI_HideMenubar).toBool());
-    m_ui->toolBar->setHidden(config()->get(Config::GUI_HideToolbar).toBool());
-    auto movable = config()->get(Config::GUI_MovableToolbar).toBool();
-    m_ui->toolBar->setMovable(movable);
-    if (!movable) {
-        // Move the toolbar back to the top of the main window
-        addToolBar(Qt::TopToolBarArea, m_ui->toolBar);
-    }
-
-    bool isOk = false;
-    const auto toolButtonStyle =
-        static_cast<Qt::ToolButtonStyle>(config()->get(Config::GUI_ToolButtonStyle).toInt(&isOk));
-    if (isOk) {
-        m_ui->toolBar->setToolButtonStyle(toolButtonStyle);
-    }
 
     updateTrayIcon();
 
@@ -1886,12 +1822,6 @@ void MainWindow::initViewMenu()
         applySettingsChanges();
     });
 #endif
-
-    m_ui->actionShowToolbar->setChecked(!config()->get(Config::GUI_HideToolbar).toBool());
-    connect(m_ui->actionShowToolbar, &QAction::toggled, this, [this](bool checked) {
-        config()->set(Config::GUI_HideToolbar, !checked);
-        applySettingsChanges();
-    });
 
     m_ui->actionShowGroupPanel->setChecked(!config()->get(Config::GUI_HideGroupPanel).toBool());
     connect(m_ui->actionShowGroupPanel, &QAction::toggled, this, [](bool checked) {

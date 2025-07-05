@@ -31,6 +31,7 @@
 #include "gui/osutils/ScreenLockListener.h"
 
 class MainWindowMenuManager;
+class MainWindowToolbarManager;
 
 namespace Ui
 {
@@ -110,7 +111,6 @@ protected:
 
 private slots:
     void updateMenuActionState();
-    void updateToolbarSeparatorVisibility();
     void updateWindowTitle();
     void showAboutDialog();
     void performUpdateCheck();
@@ -172,6 +172,7 @@ private:
     const QScopedPointer<Ui::MainWindow> m_ui;
     SignalMultiplexer m_actionMultiplexer;
     QPointer<MainWindowMenuManager> m_menuManager;
+    QPointer<MainWindowToolbarManager> m_toolbarManager;
     QPointer<QAction> m_searchWidgetAction;
     QPointer<InactivityTimer> m_inactivityTimer;
     QPointer<InactivityTimer> m_touchIDinactivityTimer;
@@ -188,7 +189,6 @@ private:
     bool m_appExiting = false;
     bool m_restartRequested = false;
     bool m_contextMenuFocusLock = false;
-    bool m_showToolbarSeparator = false;
     bool m_allowScreenCapture = false;
     qint64 m_lastFocusOutTime = 0;
     qint64 m_lastShowTime = 0;
