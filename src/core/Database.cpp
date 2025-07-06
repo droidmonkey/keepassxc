@@ -350,6 +350,33 @@ bool Database::saveAs(const QString& filePath, SaveAction action, const QString&
     return ok;
 }
 
+bool Database::checkDiskSpaceForSave(const QString& filePath, qint64 requiredSpace, QString* error)
+{
+    QFileInfo fileInfo(filePath);
+    qint64 availableSpace = 0;
+
+    if (fileInfo.exists()) {
+        // Get available space on the filesystem where the file resides
+        QStorageInfo storageInfo(fileInfo.absolutePath());
+        availableSpace = storageInfo.bytesAvailable();
+
+        // Account for the space that will be freed when we truncate the original file
+        availableSpace += fileInfo.size();
+    }
+
+    // Only proceed if we have enough space (with a small safety margin)
+    if (fileInfo.exists() && availableSpace > 0 && availableSpace < requiredSpace + 1024) {
+        if (error) {
+            *error = tr("Insufficient disk space to save database. Required: %1 bytes, Available: %2 bytes")
+                         .arg(requiredSpace)
+                         .arg(availableSpace);
+        }
+        return false;
+    }
+
+    return true;
+}
+
 bool Database::performSave(const QString& filePath, SaveAction action, const QString& backupFilePath, QString* error)
 {
     if (!backupFilePath.isNull()) {
@@ -452,26 +479,8 @@ bool Database::performSave(const QString& filePath, SaveAction action, const QSt
         QFile dbFile(filePath);
 
         // Check available space before truncating the file to prevent data loss
-        QFileInfo fileInfo(filePath);
         qint64 requiredSpace = dbBuffer.data().size();
-        qint64 availableSpace = 0;
-
-        if (fileInfo.exists()) {
-            // Get available space on the filesystem where the file resides
-            QStorageInfo storageInfo(fileInfo.absolutePath());
-            availableSpace = storageInfo.bytesAvailable();
-
-            // Account for the space that will be freed when we truncate the original file
-            availableSpace += fileInfo.size();
-        }
-
-        // Only proceed if we have enough space (with a small safety margin)
-        if (fileInfo.exists() && availableSpace > 0 && availableSpace < requiredSpace + 1024) {
-            if (error) {
-                *error = tr("Insufficient disk space to save database. Required: %1 bytes, Available: %2 bytes")
-                             .arg(requiredSpace)
-                             .arg(availableSpace);
-            }
+        if (!checkDiskSpaceForSave(filePath, requiredSpace, error)) {
             return false;
         }
 
