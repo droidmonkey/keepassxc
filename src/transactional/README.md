@@ -12,10 +12,12 @@ The transactional architecture aims to:
 - **Improve separation** between GUI logic and data manipulation
 - **Enable bulk operations** and scripting capabilities
 
-## Key Components
+## Two Implementation Approaches
 
-### 1. `Transaction.h/cpp`
-JSON-based transaction format that represents all possible database modifications:
+This module provides two different approaches to transaction management:
+
+### 1. JSON-Based Transactions (`Transaction.h/cpp`, `TransactionManager.h/cpp`)
+Uses JSON serialization for maximum flexibility and external tool support:
 
 ```cpp
 Transaction transaction(TransactionType::UpdateEntry, "Update GitHub password");
@@ -23,17 +25,58 @@ transaction.setEntryTarget(entryId);
 transaction.setAttributeChange("Password", "NewPassword123", true);
 ```
 
-### 2. `TransactionManager.h/cpp`
-Manages transaction execution, undo/redo history, and audit trails:
+**Advantages:**
+- Flexible key-value storage
+- Easy serialization for persistence/networking
+- Dynamic property access
+- Great for scripting and external tools
+
+**Disadvantages:**
+- Runtime overhead from JSON processing
+- Runtime validation only
+- More memory usage
+
+### 2. Direct Code Transactions (`DirectTransaction.h/cpp`, `DirectTransactionManager.h/cpp`)
+Uses type-safe C++ structures for maximum performance and compile-time validation:
 
 ```cpp
-TransactionManager manager(database);
-manager.executeTransaction(transaction);
-manager.undo(); // Reverses the last operation
-manager.redo(); // Re-applies the undone operation
+DirectTransaction transaction(DirectTransactionType::UpdateEntry, "Update GitHub password");
+transaction.setEntryTarget(entryId);
+transaction.setEntryAttribute("Password", "NewPassword123", true);
 ```
 
-### 3. `ImmutableEntry.h/cpp`
+**Advantages:**
+- Faster execution (no JSON parsing)
+- Lower memory overhead
+- Type safety at compile time
+- Direct member access
+
+**Disadvantages:**
+- Less flexible for dynamic use cases
+- Harder to serialize for external tools
+- More rigid structure
+
+## Key Components
+
+### JSON-Based Components
+
+#### `Transaction.h/cpp`
+JSON-based transaction format that represents all possible database modifications using QJsonObject internally.
+
+#### `TransactionManager.h/cpp`
+Manages JSON transaction execution, undo/redo history, and audit trails.
+
+### Direct Code Components
+
+#### `DirectTransaction.h/cpp`
+Type-safe transaction format using C++ structs for targets and changes.
+
+#### `DirectTransactionManager.h/cpp`
+Manages direct transaction execution with typed structures and convenience methods.
+
+### Shared Components
+
+#### `ImmutableEntry.h/cpp`
 Copy-on-write immutable Entry class demonstrating the new data structure pattern:
 
 ```cpp
@@ -45,14 +88,9 @@ ImmutableEntry updated = entry.withTitle("New Title")
 
 ## Usage Examples
 
-### Basic Entry Modification
+### JSON Approach
 ```cpp
-// Old approach (direct mutation)
-entry->setTitle("New Title");
-entry->setPassword("NewPassword");
-
-// New approach (immutable + transaction)
-auto newEntry = entry.withTitle("New Title").withPassword("NewPassword");
+// Create transaction
 Transaction tx(TransactionType::UpdateEntry, "Update credentials");
 tx.setEntryTarget(entry.uuid());
 tx.setAttributeChange("Title", "New Title", false);
@@ -60,33 +98,18 @@ tx.setAttributeChange("Password", "NewPassword", true);
 manager.executeTransaction(tx);
 ```
 
-### Batch Operations
+### Direct Approach
 ```cpp
-manager.beginBatch("Import from CSV");
-for (const auto& csvRow : csvData) {
-    Transaction tx(TransactionType::CreateEntry, "Import entry");
-    tx.setAttributeChange("Title", csvRow.title, false);
-    tx.setAttributeChange("Password", csvRow.password, true);
-    manager.executeTransaction(tx);
-}
-manager.endBatch(); // Single undo operation for entire import
-```
+// Create transaction
+DirectTransaction tx(DirectTransactionType::UpdateEntry, "Update credentials");
+tx.setEntryTarget(entry.uuid());
+tx.setEntryAttribute("Title", "New Title", false);
+tx.setEntryAttribute("Password", "NewPassword", true);
+directManager.executeTransaction(tx);
 
-### Undo/Redo
-```cpp
-// Make some changes
-manager.executeTransaction(createTransaction);
-manager.executeTransaction(updateTransaction);
-
-// Undo last change
-if (manager.canUndo()) {
-    manager.undo(); // Reverses updateTransaction
-}
-
-// Redo if needed
-if (manager.canRedo()) {
-    manager.redo(); // Re-applies updateTransaction
-}
+// Or use convenience methods
+directManager.updateEntryTitle(entryId, "New Title");
+directManager.updateEntryPassword(entryId, "NewPassword");
 ```
 
 ## Building and Testing
@@ -108,9 +131,13 @@ cmake --build . --target transactional
 cmake --build . --target TransactionalTest
 ./src/transactional/TransactionalTest
 
-# Build and run demo
+# Build and run JSON demo
 cmake --build . --target TransactionalDemo
 ./src/transactional/TransactionalDemo
+
+# Build and run Direct demo
+cmake --build . --target DirectTransactionDemo
+./src/transactional/DirectTransactionDemo
 ```
 
 ### Running Tests
@@ -122,21 +149,25 @@ ctest -R TransactionalTest -V
 ./src/transactional/TransactionalTest
 ```
 
-### Running Demo
+### Running Demos
 ```bash
-# Run the demonstration program
+# Run the JSON-based demonstration program
 ./src/transactional/TransactionalDemo
+
+# Run the direct transaction demonstration program
+./src/transactional/DirectTransactionDemo
 ```
 
-The demo will show:
+The demos will show:
 - Immutable entry creation and modification
-- Transaction creation and serialization
+- Transaction creation and execution
 - Copy-on-write behavior
+- Undo/redo functionality
 - Usage patterns and best practices
 
 ## JSON Transaction Format
 
-Transactions are serialized to JSON for maximum portability and tooling support:
+JSON transactions are serialized for maximum portability and tooling support:
 
 ```json
 {
@@ -184,20 +215,27 @@ This experimental module demonstrates the core concepts. Integration into the ma
 3. **Phase 3**: Replace mutable data structures with immutable ones
 4. **Phase 4**: Remove legacy mutation methods
 
-## Backward Compatibility
+## Choosing the Right Approach
 
-The design maintains backward compatibility by:
-- Keeping existing classes unchanged initially
-- Adding transaction layer as an optional interface
-- Providing compatibility wrappers for legacy code
-- Migrating incrementally rather than wholesale replacement
+**Use JSON-based transactions when:**
+- Building external tools or scripts
+- Need dynamic property handling
+- Serialization for network/storage is important
+- Maximum flexibility is required
+
+**Use Direct transactions when:**
+- Performance is critical
+- Type safety is important
+- Working within C++ codebase
+- Memory efficiency is a concern
 
 ## Performance Considerations
 
 - **Copy-on-Write**: Minimal memory overhead for unmodified objects
 - **Shared Data**: Qt's implicit sharing reduces memory usage
 - **Lazy Evaluation**: Transactions can be batched and optimized
-- **JSON Overhead**: Acceptable for the flexibility gained
+- **JSON Overhead**: Acceptable for the flexibility gained (JSON approach)
+- **Type Safety**: Compile-time validation prevents runtime errors (Direct approach)
 
 ## Current Limitations
 
@@ -219,12 +257,20 @@ This is a proof-of-concept implementation with several limitations:
 
 ## Files Overview
 
+### JSON-Based Implementation
 - `Transaction.h/cpp` - JSON-based transaction representation
-- `TransactionManager.h/cpp` - Transaction execution and undo/redo
+- `TransactionManager.h/cpp` - JSON transaction execution and undo/redo
+- `TransactionalTest.cpp` - Unit tests demonstrating JSON functionality
+- `TransactionalDemo.cpp` - Interactive JSON demonstration program
+
+### Direct Implementation
+- `DirectTransaction.h/cpp` - Type-safe transaction representation
+- `DirectTransactionManager.h/cpp` - Direct transaction execution with convenience methods
+- `DirectTransactionDemo.cpp` - Interactive direct transaction demonstration program
+
+### Shared Components
 - `ImmutableEntry.h/cpp` - Copy-on-write immutable Entry class
-- `TransactionalTest.cpp` - Unit tests demonstrating functionality
-- `TransactionalDemo.cpp` - Interactive demonstration program
 - `CMakeLists.txt` - Build configuration
 - `README.md` - This documentation
 
-This implementation provides a solid foundation for discussing and refining the transactional architecture approach for KeePassXC.
+This implementation provides both flexible (JSON) and performant (Direct) approaches to transaction management, allowing the team to choose the best fit for different use cases within KeePassXC.
