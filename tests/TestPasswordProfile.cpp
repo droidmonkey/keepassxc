@@ -17,6 +17,7 @@
 
 #include "TestPasswordProfile.h"
 
+#include <QJsonDocument>
 #include <QSignalSpy>
 #include <QTest>
 
@@ -207,4 +208,59 @@ void TestPasswordProfile::testProfileApplication()
     // Test applying wrong profile type (should be safe)
     passwordProfile.applyPassphraseSettings(&passphraseGen); // Should do nothing
     passphraseProfile.applyPasswordSettings(&passwordGen); // Should do nothing
+}
+
+void TestPasswordProfile::testPersistence()
+{
+    auto db = QSharedPointer<Database>::create();
+    auto key = QSharedPointer<CompositeKey>::create();
+    key->addKey(QSharedPointer<PasswordKey>::create("testkey"));
+    db->setKey(key);
+    
+    // Add some profiles
+    PasswordProfile profile1("PersistTest1");
+    profile1.setPasswordSettings(14, PasswordGenerator::LowerLetters, PasswordGenerator::DefaultFlags);
+    
+    PasswordProfile profile2("PersistTest2");
+    profile2.setPassphraseSettings(4, PassphraseGenerator::UPPERCASE, "_");
+    
+    db->addPasswordProfile(profile1);
+    db->addPasswordProfile(profile2);
+    
+    // Verify profiles exist
+    QVERIFY(db->hasPasswordProfile("PersistTest1"));
+    QVERIFY(db->hasPasswordProfile("PersistTest2"));
+    QCOMPARE(db->passwordProfileNames().size(), 2);
+    
+    // Test that the custom data persists in the database structure
+    QVariantMap customData = db->publicCustomData();
+    QVERIFY(customData.contains("KPXC_PasswordProfiles"));
+    
+    // Verify the JSON structure is valid
+    QByteArray profilesData = customData["KPXC_PasswordProfiles"].toByteArray();
+    QJsonDocument doc = QJsonDocument::fromJson(profilesData);
+    QVERIFY(!doc.isNull());
+    QVERIFY(doc.isObject());
+    
+    QVariantMap profilesMap = doc.toVariant().toMap();
+    QCOMPARE(profilesMap.size(), 2);
+    QVERIFY(profilesMap.contains("PersistTest1"));
+    QVERIFY(profilesMap.contains("PersistTest2"));
+    
+    // Test that profiles can be reconstructed from the stored data
+    QList<PasswordProfile> allProfiles = db->passwordProfiles();
+    QCOMPARE(allProfiles.size(), 2);
+    
+    bool foundProfile1 = false, foundProfile2 = false;
+    for (const auto& profile : allProfiles) {
+        if (profile.name() == "PersistTest1") {
+            QCOMPARE(profile.type(), PasswordProfile::Password);
+            foundProfile1 = true;
+        } else if (profile.name() == "PersistTest2") {
+            QCOMPARE(profile.type(), PasswordProfile::Passphrase);
+            foundProfile2 = true;
+        }
+    }
+    QVERIFY(foundProfile1);
+    QVERIFY(foundProfile2);
 }

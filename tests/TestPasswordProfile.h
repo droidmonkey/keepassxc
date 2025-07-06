@@ -32,6 +32,7 @@ private slots:
     void testDatabaseIntegration();
     void testDuplicateNameHandling();
     void testProfileApplication();
+    void testPersistence();
 };
 
 #endif // KEEPASSX_TESTPASSWORDPROFILE_H
