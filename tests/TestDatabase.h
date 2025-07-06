@@ -37,6 +37,8 @@ private slots:
     void testEmptyRecycleBinWithHierarchicalData();
     void testCustomIcons();
     void testExternallyModified();
+    void testDirectWriteFailsGracefully();
+    void testDirectWriteDiskSpaceCheck();
 };
 
 #endif // KEEPASSX_TESTDATABASE_H
