@@ -17,6 +17,7 @@
 
 #include "ImmutableEntry.h"
 #include "Transaction.h"
+#include "TransactionBuilder.h"
 #include "TransactionManager.h"
 #include <QtTest/QtTest>
 
@@ -30,6 +31,8 @@ private slots:
     void testFluentInterface();
     void testTransaction();
     void testTransactionSerialization();
+    void testTransactionBuilder();
+    void testTransactionBuilderValidation();
 
 private:
 };
@@ -129,6 +132,91 @@ void TransactionalTest::testTransactionSerialization()
     QCOMPARE(deserialized.change("attributes.Password.value").toString(), QString("TestPassword"));
     QCOMPARE(deserialized.change("attributes.Password.protected").toBool(), true);
     QCOMPARE(deserialized.change("properties.title").toString(), QString("New Title"));
+}
+
+void TransactionalTest::testTransactionBuilder()
+{
+    auto entryId = QUuid::createUuid();
+    auto groupId = QUuid::createUuid();
+
+    // Test basic entry update builder
+    auto transaction = TransactionBuilder::forEntry(entryId)
+                           .withDescription("Test entry update")
+                           .updateEntry()
+                           .withTitle("Test Title")
+                           .withPassword("TestPassword123")
+                           .withUrl("https://example.com")
+                           .build();
+
+    QVERIFY(transaction.isValid());
+    QCOMPARE(transaction.type(), DirectTransactionType::UpdateEntry);
+    QCOMPARE(transaction.description(), QString("Test entry update"));
+    QCOMPARE(transaction.entryTarget().entryId, entryId);
+    QCOMPARE(transaction.entryChanges().attributes["Title"], QString("Test Title"));
+    QCOMPARE(transaction.entryChanges().attributes["Password"], QString("TestPassword123"));
+    QCOMPARE(transaction.entryChanges().protectedAttributes["Password"], true);
+    QCOMPARE(transaction.entryChanges().attributes["URL"], QString("https://example.com"));
+
+    // Test group update builder
+    auto groupTransaction = TransactionBuilder::forGroup(groupId)
+                                .withDescription("Test group update")
+                                .updateGroup()
+                                .withName("Test Group")
+                                .withIcon(5)
+                                .build();
+
+    QVERIFY(groupTransaction.isValid());
+    QCOMPARE(groupTransaction.type(), DirectTransactionType::UpdateGroup);
+    QCOMPARE(groupTransaction.description(), QString("Test group update"));
+    QCOMPARE(groupTransaction.groupTarget().groupId, groupId);
+    QCOMPARE(groupTransaction.groupChanges().properties["Name"].toString(), QString("Test Group"));
+    QCOMPARE(groupTransaction.groupChanges().properties["IconIndex"].toInt(), 5);
+
+    // Test create entry builder
+    auto createTransaction = TransactionBuilder::forEntry(QUuid::createUuid())
+                                 .withDescription("Create new entry")
+                                 .createEntry(groupId)
+                                 .withTitle("New Entry")
+                                 .build();
+
+    QVERIFY(createTransaction.isValid());
+    QCOMPARE(createTransaction.type(), DirectTransactionType::CreateEntry);
+    QCOMPARE(createTransaction.entryTarget().groupId, groupId);
+    QCOMPARE(createTransaction.entryChanges().attributes["Title"], QString("New Entry"));
+}
+
+void TransactionalTest::testTransactionBuilderValidation()
+{
+    auto entryId = QUuid::createUuid();
+
+    // Test valid transaction
+    auto validBuilder =
+        TransactionBuilder::forEntry(entryId).withDescription("Valid update").updateEntry().withTitle("Valid Title");
+
+    QVERIFY(validBuilder.isValid());
+    QVERIFY(validBuilder.validationError().isEmpty());
+
+    // Test invalid transaction - no operation
+    auto invalidBuilder1 =
+        TransactionBuilder::forEntry(entryId).withDescription("Missing operation").withTitle("Some title");
+
+    QVERIFY(!invalidBuilder1.isValid());
+    QVERIFY(invalidBuilder1.validationError().contains("No operation specified"));
+
+    // Test invalid transaction - update without changes
+    auto invalidBuilder2 =
+        TransactionBuilder::forEntry(entryId).withDescription("Update without changes").updateEntry();
+
+    QVERIFY(!invalidBuilder2.isValid());
+    QVERIFY(invalidBuilder2.validationError().contains("Update operations require at least one change"));
+
+    // Test invalid transaction - create without target
+    auto invalidBuilder3 = TransactionBuilder::forEntry(QUuid::createUuid())
+                               .withDescription("Create without target")
+                               .createEntry(QUuid()); // Null UUID
+
+    QVERIFY(!invalidBuilder3.isValid());
+    QVERIFY(invalidBuilder3.validationError().contains("Target group ID is required"));
 }
 
 QTEST_MAIN(TransactionalTest)

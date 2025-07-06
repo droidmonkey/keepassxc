@@ -21,6 +21,7 @@ set(transactional_SOURCES
     ImmutableEntry.cpp
     DirectTransaction.cpp
     DirectTransactionManager.cpp
+    TransactionBuilder.cpp
 )
 
 set(transactional_HEADERS
@@ -29,6 +30,7 @@ set(transactional_HEADERS
     ImmutableEntry.h
     DirectTransaction.h
     DirectTransactionManager.h
+    TransactionBuilder.h
 )
 
 # Add library for transactional functionality
@@ -70,10 +72,21 @@ target_link_libraries(DirectTransactionDemo
     Qt5::Core
 )
 
+# Add transaction builder demo executable
+add_executable(TransactionBuilderDemo TransactionBuilderDemo.cpp)
+target_link_libraries(TransactionBuilderDemo
+    transactional
+    Qt5::Core
+)
+
 target_include_directories(TransactionalDemo
     PRIVATE ${CMAKE_SOURCE_DIR}/src
 )
 
 target_include_directories(DirectTransactionDemo
+    PRIVATE ${CMAKE_SOURCE_DIR}/src
+)
+
+target_include_directories(TransactionBuilderDemo
     PRIVATE ${CMAKE_SOURCE_DIR}/src
 )
