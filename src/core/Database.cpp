@@ -1011,7 +1011,7 @@ void Database::addPasswordProfile(const PasswordProfile& profile)
     }
 
     auto json = QJsonDocument::fromVariant(profilesMap);
-    m_data.publicCustomData.insert("KPXC_PasswordProfiles", json.toJson());
+    metadata()->customData()->set("KPXC_PasswordProfiles", json.toJson());
     markAsModified();
 }
 
@@ -1027,7 +1027,7 @@ void Database::removePasswordProfile(const QString& name)
     }
 
     if (profiles.isEmpty()) {
-        m_data.publicCustomData.remove("KPXC_PasswordProfiles");
+        metadata()->customData()->remove("KPXC_PasswordProfiles");
     } else {
         QVariantMap profilesMap;
         for (const auto& p : profiles) {
@@ -1035,7 +1035,7 @@ void Database::removePasswordProfile(const QString& name)
         }
 
         auto json = QJsonDocument::fromVariant(profilesMap);
-        m_data.publicCustomData.insert("KPXC_PasswordProfiles", json.toJson());
+        metadata()->customData()->set("KPXC_PasswordProfiles", json.toJson());
     }
     markAsModified();
 }
@@ -1070,8 +1070,8 @@ QList<PasswordProfile> Database::passwordProfiles() const
 {
     QList<PasswordProfile> profiles;
 
-    auto profilesData = m_data.publicCustomData.value("KPXC_PasswordProfiles");
-    auto json = QJsonDocument::fromJson(profilesData.toByteArray());
+    auto profilesData = metadata()->customData()->value("KPXC_PasswordProfiles");
+    auto json = QJsonDocument::fromJson(profilesData.toUtf8());
     auto profilesMap = json.toVariant().toMap();
 
     for (auto it = profilesMap.constBegin(); it != profilesMap.constEnd(); ++it) {
