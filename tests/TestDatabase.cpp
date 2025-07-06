@@ -313,7 +313,7 @@ void TestDatabase::testDirectWriteFailsGracefully()
 {
     // Test that DirectWrite saves fail gracefully when write operations fail,
     // and do not truncate the original database file.
-    
+
     TemporaryFile tempFile;
     QVERIFY(tempFile.copyFromFile(dbFileName));
 
@@ -356,36 +356,40 @@ void TestDatabase::testDirectWriteFailsGracefully()
     QByteArray currentContents = checkFile.readAll();
     checkFile.close();
 
-    QVERIFY(!saveResult);  // Save should fail
-    QVERIFY(!error.isEmpty());  // Error message should be set
+    QVERIFY(!saveResult); // Save should fail
+    QVERIFY(!error.isEmpty()); // Error message should be set
     QVERIFY(!currentContents.isEmpty());
     QCOMPARE(currentContents, originalContents);
-    QVERIFY(db->isModified());  // Should still be modified
+    QVERIFY(db->isModified()); // Should still be modified
 
     // Test 2: Simulate truncation issue by manually testing the DirectWrite logic
     // Let's create a scenario where file opens but write fails
-    
+
     // First, let's try to demonstrate the problem exists by examining what happens
     // when we have a large database and very small available space
-    
+
     // Create a much larger database by adding many entries
     auto rootGroup = db->rootGroup();
     for (int i = 0; i < 100; ++i) {
         auto entry = new Entry();
         entry->setUuid(QUuid::createUuid());
         entry->setTitle(QString("Test Entry %1 with a very long title to make the database larger").arg(i));
-        entry->setPassword(QString("Very long password %1 with lots of text to increase database size significantly").arg(i));
-        entry->setNotes(QString("Very long notes %1 - this entry contains a lot of text to make sure the database file becomes significantly larger when saved to disk. We need this to ensure that when we test disk space exhaustion, there's actually substantial data to write.").arg(i));
+        entry->setPassword(
+            QString("Very long password %1 with lots of text to increase database size significantly").arg(i));
+        entry->setNotes(QString("Very long notes %1 - this entry contains a lot of text to make sure the database file "
+                                "becomes significantly larger when saved to disk. We need this to ensure that when we "
+                                "test disk space exhaustion, there's actually substantial data to write.")
+                            .arg(i));
         rootGroup->addEntry(entry);
     }
-    
+
     QVERIFY(db->isModified());
-    
+
     // Try to save with DirectWrite - this should work normally
     error.clear();
     saveResult = db->save(Database::DirectWrite, QString(), &error);
     qDebug() << "Large db test - Save result:" << saveResult << "Error:" << error;
-    
+
     // If the save succeeds, the file should be larger now
     if (saveResult) {
         QFileInfo newFileInfo(tempFile.fileName());
@@ -399,7 +403,7 @@ void TestDatabase::testDirectWriteDiskSpaceCheck()
 {
     // Test that the DirectWrite method correctly checks for disk space availability
     // before truncating the original file
-    
+
     TemporaryFile tempFile;
     QVERIFY(tempFile.copyFromFile(dbFileName));
 
@@ -416,30 +420,30 @@ void TestDatabase::testDirectWriteDiskSpaceCheck()
     auto entry = new Entry();
     entry->setUuid(QUuid::createUuid());
     entry->setTitle("Test Entry with Large Attachment");
-    
+
     // Create a large attachment (1MB)
-    QByteArray largeData(1024 * 1024, 'A');  // 1MB of 'A' characters
+    QByteArray largeData(1024 * 1024, 'A'); // 1MB of 'A' characters
     entry->attachments()->set("large_file.txt", largeData);
     rootGroup->addEntry(entry);
-    
+
     QVERIFY(db->isModified());
-    
+
     // Test that normal DirectWrite still works with large databases
     error.clear();
     bool saveResult = db->save(Database::DirectWrite, QString(), &error);
     qDebug() << "Large attachment test - Save result:" << saveResult << "Error:" << error;
-    
+
     if (saveResult) {
         QFileInfo fileInfo(tempFile.fileName());
         qint64 fileSize = fileInfo.size();
         qDebug() << "Large attachment test - Final file size:" << fileSize;
         // The file should be substantially larger now (at least 1MB)
         QVERIFY(fileSize > 1024 * 1024);
-        QVERIFY(!db->isModified());  // Save should have succeeded
+        QVERIFY(!db->isModified()); // Save should have succeeded
     } else {
         // If save failed due to space check, that's the expected behavior for our fix
         qDebug() << "Save failed as expected due to space constraints";
         QVERIFY(!error.isEmpty());
-        QVERIFY(db->isModified());  // Should still be modified
+        QVERIFY(db->isModified()); // Should still be modified
     }
 }
