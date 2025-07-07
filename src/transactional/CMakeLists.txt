@@ -22,6 +22,10 @@ set(transactional_SOURCES
     DirectTransaction.cpp
     DirectTransactionManager.cpp
     TransactionBuilder.cpp
+    TransactionBuilderBase.cpp
+    EntryTransactionBuilder.cpp
+    GroupTransactionBuilder.cpp
+    Builder.cpp
 )
 
 set(transactional_HEADERS
@@ -31,6 +35,10 @@ set(transactional_HEADERS
     DirectTransaction.h
     DirectTransactionManager.h
     TransactionBuilder.h
+    TransactionBuilderBase.h
+    EntryTransactionBuilder.h
+    GroupTransactionBuilder.h
+    Builder.h
 )
 
 # Add library for transactional functionality
@@ -56,6 +64,15 @@ if(WITH_GUI_TESTS)
     )
     
     add_test(NAME TransactionalTest COMMAND TransactionalTest)
+    
+    add_executable(NewBuilderTest NewBuilderTest.cpp)
+    target_link_libraries(NewBuilderTest
+        transactional
+        Qt5::Test
+        Qt5::Core
+    )
+    
+    add_test(NAME NewBuilderTest COMMAND NewBuilderTest)
 endif()
 
 # Add demo executable
@@ -79,6 +96,13 @@ target_link_libraries(TransactionBuilderDemo
     Qt5::Core
 )
 
+# Add new transaction builder demo executable
+add_executable(NewBuilderDemo NewBuilderDemo.cpp)
+target_link_libraries(NewBuilderDemo
+    transactional
+    Qt5::Core
+)
+
 target_include_directories(TransactionalDemo
     PRIVATE ${CMAKE_SOURCE_DIR}/src
 )
@@ -88,5 +112,9 @@ target_include_directories(DirectTransactionDemo
 )
 
 target_include_directories(TransactionBuilderDemo
+    PRIVATE ${CMAKE_SOURCE_DIR}/src
+)
+
+target_include_directories(NewBuilderDemo
     PRIVATE ${CMAKE_SOURCE_DIR}/src
 )
