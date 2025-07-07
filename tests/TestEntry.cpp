@@ -887,16 +887,18 @@ void TestEntry::testMergeEntries()
     QCOMPARE(merged->password(), QString("pass1"));
     QCOMPARE(merged->url(), QString("https://example1.com"));
 
-    // Notes should be combined
-    QString expectedNotes = "Notes from entry 1\n\n--- Merged from second entry ---\nNotes from entry 2";
-    QCOMPARE(merged->notes(), expectedNotes);
+    // Notes should be combined with conflict information appended
+    QString mergedNotes = merged->notes();
+    QVERIFY(mergedNotes.contains("Notes from entry 1"));
+    QVERIFY(mergedNotes.contains("--- Merged from second entry ---"));
+    QVERIFY(mergedNotes.contains("Notes from entry 2"));
+    QVERIFY(mergedNotes.contains("--- Merge Conflicts ---"));
+    QVERIFY(mergedNotes.contains("Title: 'Entry 1'"));
+    QVERIFY(mergedNotes.contains("Username: 'user1'"));
 
-    // Check conflict resolution for other fields
-    QVERIFY(merged->attributes()->hasKey("Merge_Conflict_Title_2"));
-    QCOMPARE(merged->attributes()->value("Merge_Conflict_Title_2"), QString("Entry 2"));
-
-    QVERIFY(merged->attributes()->hasKey("Merge_Conflict_UserName_2"));
-    QCOMPARE(merged->attributes()->value("Merge_Conflict_UserName_2"), QString("user2"));
+    // Check that conflict attributes are NOT created (new behavior)
+    QVERIFY(!merged->attributes()->hasKey("Merge_Conflict_Title_2"));
+    QVERIFY(!merged->attributes()->hasKey("Merge_Conflict_UserName_2"));
 
     // Check custom attributes are merged
     QVERIFY(merged->attributes()->hasKey("Custom1"));
@@ -934,13 +936,19 @@ void TestEntry::testMergeEntriesConflicts()
     // Original custom field should keep first value
     QCOMPARE(merged->attributes()->value("CustomField"), QString("Value1"));
 
-    // Conflicting value should be stored with suffix
-    QVERIFY(merged->attributes()->hasKey("CustomField_2"));
-    QCOMPARE(merged->attributes()->value("CustomField_2"), QString("Value2"));
+    // Conflicting value should NOT be stored with suffix (new behavior)
+    QVERIFY(!merged->attributes()->hasKey("CustomField_2"));
 
     // Unique fields should both be present
     QCOMPARE(merged->attributes()->value("UniqueField1"), QString("Unique1"));
     QCOMPARE(merged->attributes()->value("UniqueField2"), QString("Unique2"));
+
+    // Conflict should be documented in notes
+    QString notes = merged->notes();
+    QVERIFY(notes.contains("--- Merge Conflicts ---"));
+    QVERIFY(notes.contains("Custom field 'CustomField'"));
+    QVERIFY(notes.contains("Value1"));
+    QVERIFY(notes.contains("Value2"));
 
     delete entry1;
     delete entry2;
@@ -972,9 +980,13 @@ void TestEntry::testMergeEntriesAttachments()
     QVERIFY(merged->attachments()->hasKey("common.txt"));
     QCOMPARE(merged->attachments()->value("common.txt"), QByteArray("Content from entry 1"));
 
-    // Conflicting attachment should be renamed
-    QVERIFY(merged->attachments()->hasKey("common_2.txt"));
-    QCOMPARE(merged->attachments()->value("common_2.txt"), QByteArray("Content from entry 2"));
+    // Conflicting attachment should NOT be renamed (new behavior)
+    QVERIFY(!merged->attachments()->hasKey("common_2.txt"));
+
+    // Conflict should be documented in notes
+    QString notes = merged->notes();
+    QVERIFY(notes.contains("--- Merge Conflicts ---"));
+    QVERIFY(notes.contains("Attachment 'common.txt'"));
 
     delete entry1;
     delete entry2;

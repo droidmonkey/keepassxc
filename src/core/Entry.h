@@ -307,9 +307,11 @@ private:
     static EntryReferenceType referenceType(const QString& referenceStr);
 
     // Helper methods for mergeEntries
-    static void mergeStandardAttributes(Entry* merged, const Entry* entry1, const Entry* entry2);
-    static void mergeCustomAttributes(Entry* merged, const Entry* entry1, const Entry* entry2);
-    static void mergeAttachments(Entry* merged, const Entry* entry1, const Entry* entry2);
+    static void
+    mergeStandardAttributes(Entry* merged, const Entry* entry1, const Entry* entry2, QStringList& conflictNotes);
+    static void
+    mergeCustomAttributes(Entry* merged, const Entry* entry1, const Entry* entry2, QStringList& conflictNotes);
+    static void mergeAttachments(Entry* merged, const Entry* entry1, const Entry* entry2, QStringList& conflictNotes);
     static void mergeAutoTypeAssociations(Entry* merged, const Entry* entry1, const Entry* entry2);
     static void mergeTags(Entry* merged, const Entry* entry1, const Entry* entry2);
     static void mergeHistory(Entry* merged, const Entry* entry1, const Entry* entry2);

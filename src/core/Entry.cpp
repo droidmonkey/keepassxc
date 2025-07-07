@@ -1695,14 +1695,17 @@ Entry* Entry::mergeEntries(const Entry* entry1, const Entry* entry2)
     // Create a new entry based on the first entry
     Entry* merged = entry1->clone(Entry::CloneCopy);
 
+    // Accumulate conflict information
+    QStringList conflictNotes;
+
     // Merge standard attributes with conflict resolution
-    mergeStandardAttributes(merged, entry1, entry2);
+    mergeStandardAttributes(merged, entry1, entry2, conflictNotes);
 
     // Merge custom attributes
-    mergeCustomAttributes(merged, entry1, entry2);
+    mergeCustomAttributes(merged, entry1, entry2, conflictNotes);
 
     // Merge attachments
-    mergeAttachments(merged, entry1, entry2);
+    mergeAttachments(merged, entry1, entry2, conflictNotes);
 
     // Merge auto-type associations
     mergeAutoTypeAssociations(merged, entry1, entry2);
@@ -1716,10 +1719,20 @@ Entry* Entry::mergeEntries(const Entry* entry1, const Entry* entry2)
     // Set appropriate time information
     mergeTimeInfo(merged, entry1, entry2);
 
+    // Append conflict notes to the merged entry's notes
+    if (!conflictNotes.isEmpty()) {
+        QString existingNotes = merged->notes();
+        if (!existingNotes.isEmpty()) {
+            existingNotes += "\n\n";
+        }
+        existingNotes += "--- Merge Conflicts ---\n" + conflictNotes.join("\n");
+        merged->setNotes(existingNotes);
+    }
+
     return merged;
 }
 
-void Entry::mergeStandardAttributes(Entry* merged, const Entry* entry1, const Entry* entry2)
+void Entry::mergeStandardAttributes(Entry* merged, const Entry* entry1, const Entry* entry2, QStringList& conflictNotes)
 {
     // Handle standard attributes with conflict resolution
     const QStringList standardKeys = {EntryAttributes::TitleKey,
@@ -1750,17 +1763,26 @@ void Entry::mergeStandardAttributes(Entry* merged, const Entry* entry1, const En
                 // For notes, combine with separator
                 mergedValue = value1 + "\n\n--- Merged from second entry ---\n" + value2;
             } else {
-                // For other fields, use first value and store second as custom attribute
+                // For other fields, use first value and add conflict note
                 mergedValue = value1;
-                QString conflictKey = QString("Merge_Conflict_%1_2").arg(key);
-                merged->attributes()->set(conflictKey, value2, protected2);
+                QString fieldName = key;
+                if (key == EntryAttributes::TitleKey)
+                    fieldName = "Title";
+                else if (key == EntryAttributes::UserNameKey)
+                    fieldName = "Username";
+                else if (key == EntryAttributes::PasswordKey)
+                    fieldName = "Password";
+                else if (key == EntryAttributes::URLKey)
+                    fieldName = "URL";
+
+                conflictNotes.append(QString("%1: '%2' (conflicted value: '%3')").arg(fieldName, value1, value2));
             }
             merged->attributes()->set(key, mergedValue, protected1 || protected2);
         }
     }
 }
 
-void Entry::mergeCustomAttributes(Entry* merged, const Entry* entry1, const Entry* entry2)
+void Entry::mergeCustomAttributes(Entry* merged, const Entry* entry1, const Entry* entry2, QStringList& conflictNotes)
 {
     // Get all custom attributes from both entries
     QList<QString> keys1 = entry1->attributes()->customKeys();
@@ -1776,20 +1798,15 @@ void Entry::mergeCustomAttributes(Entry* merged, const Entry* entry1, const Entr
             QString value2 = entry2->attributes()->value(key);
 
             if (value1 != value2) {
-                // Values differ, create numbered versions
-                QString conflictKey = key + "_2";
-                int counter = 2;
-                while (merged->attributes()->hasKey(conflictKey)) {
-                    counter++;
-                    conflictKey = QString("%1_%2").arg(key).arg(counter);
-                }
-                merged->attributes()->set(conflictKey, value2, entry2->attributes()->isProtected(key));
+                // Values differ, keep first value and note the conflict
+                conflictNotes.append(
+                    QString("Custom field '%1': '%2' (conflicted value: '%3')").arg(key, value1, value2));
             }
         }
     }
 }
 
-void Entry::mergeAttachments(Entry* merged, const Entry* entry1, const Entry* entry2)
+void Entry::mergeAttachments(Entry* merged, const Entry* entry1, const Entry* entry2, QStringList& conflictNotes)
 {
     // Add all attachments from entry2 that are not in entry1
     QStringList keys1 = entry1->attachments()->keys();
@@ -1800,32 +1817,17 @@ void Entry::mergeAttachments(Entry* merged, const Entry* entry1, const Entry* en
             // No conflict, add the attachment
             merged->attachments()->set(key, entry2->attachments()->value(key));
         } else {
-            // Handle name conflict by adding suffix
+            // Handle name conflict by noting the conflict
             QByteArray attachment1 = entry1->attachments()->value(key);
             QByteArray attachment2 = entry2->attachments()->value(key);
 
             if (attachment1 != attachment2) {
-                // Different content, rename the second attachment
-                QString newKey = key;
-                int dotIndex = newKey.lastIndexOf('.');
-                if (dotIndex != -1) {
-                    newKey.insert(dotIndex, "_2");
-                } else {
-                    newKey += "_2";
-                }
-
-                // Ensure uniqueness
-                int counter = 2;
-                while (merged->attachments()->hasKey(newKey)) {
-                    if (dotIndex != -1) {
-                        newKey = key;
-                        newKey.insert(dotIndex, QString("_%1").arg(++counter));
-                    } else {
-                        newKey = QString("%1_%2").arg(key).arg(++counter);
-                    }
-                }
-
-                merged->attachments()->set(newKey, attachment2);
+                // Different content, keep first attachment and note the conflict
+                conflictNotes.append(QString("Attachment '%1': kept version from first entry (size: %2 bytes) "
+                                             "(conflicted version size: %3 bytes)")
+                                         .arg(key)
+                                         .arg(attachment1.size())
+                                         .arg(attachment2.size()));
             }
         }
     }
