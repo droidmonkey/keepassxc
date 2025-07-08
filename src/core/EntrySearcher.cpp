@@ -145,7 +145,15 @@ bool EntrySearcher::searchEntryImpl(const Entry* entry)
 {
     // Pre-load in case they are needed
     auto attributes_keys = entry->attributes()->customKeys();
-    auto attributes = QStringList(attributes_keys + entry->attributes()->values(attributes_keys));
+    auto attributes = QStringList(attributes_keys); // Start with just the keys
+
+    // Add values, but skip protected ones if skipProtected is enabled
+    for (const QString& key : attributes_keys) {
+        if (!m_skipProtected || !entry->attributes()->isProtected(key)) {
+            attributes.append(entry->attributes()->value(key));
+        }
+    }
+
     auto attachments = QStringList(entry->attachments()->keys());
     // Build a group hierarchy to allow searching for e.g. /group1/subgroup*
     QString hierarchy;
@@ -232,11 +240,13 @@ bool EntrySearcher::searchEntryImpl(const Entry* entry)
             found = term.regex.match(entry->uuidToHex()).hasMatch();
             break;
         default:
-            // Terms without a specific field try to match title, username, url, and notes
+            // Terms without a specific field try to match title, username, url, notes, and custom attributes
+            // This provides a comprehensive default search that matches user expectations
             found = term.regex.match(entry->resolvePlaceholder(entry->title())).hasMatch()
                     || term.regex.match(entry->resolvePlaceholder(entry->username())).hasMatch()
                     || term.regex.match(entry->resolvePlaceholder(entry->url())).hasMatch()
-                    || entry->tagList().indexOf(term.regex) != -1 || term.regex.match(entry->notes()).hasMatch();
+                    || entry->tagList().indexOf(term.regex) != -1 || term.regex.match(entry->notes()).hasMatch()
+                    || !attributes.filter(term.regex).empty();
         }
 
         // negate the result if exclude:
