@@ -145,14 +145,7 @@ bool EntrySearcher::searchEntryImpl(const Entry* entry)
 {
     // Pre-load in case they are needed
     auto attributes_keys = entry->attributes()->customKeys();
-    auto attributes = QStringList(attributes_keys); // Start with just the keys
-
-    // Add values, but skip protected ones if skipProtected is enabled
-    for (const QString& key : attributes_keys) {
-        if (!m_skipProtected || !entry->attributes()->isProtected(key)) {
-            attributes.append(entry->attributes()->value(key));
-        }
-    }
+    auto attributes = QStringList(attributes_keys + entry->attributes()->values(attributes_keys));
 
     auto attachments = QStringList(entry->attachments()->keys());
     // Build a group hierarchy to allow searching for e.g. /group1/subgroup*

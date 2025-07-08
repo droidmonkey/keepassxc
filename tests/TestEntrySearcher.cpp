@@ -481,7 +481,7 @@ void TestEntrySearcher::testDefaultSearchIncludesCustomAttributes()
     QCOMPARE(m_searchResult.count(), 1);
     QVERIFY(m_searchResult.contains(entry1));
 
-    // Test that protected attributes are respected with skipProtected flag
+    // Test that protected attributes are included in default search regardless of skipProtected flag
     auto entry4 = new Entry();
     entry4->setGroup(m_rootGroup);
     entry4->setTitle("Protected Entry");
@@ -494,10 +494,11 @@ void TestEntrySearcher::testDefaultSearchIncludesCustomAttributes()
     QCOMPARE(m_searchResult.count(), 1);
     QVERIFY(m_searchResult.contains(entry4));
 
-    // With skipProtected = true, should NOT find protected attributes but SHOULD find public ones
+    // With skipProtected = true, should STILL find protected attributes in default search
     m_entrySearcher = EntrySearcher(false, true);
     m_searchResult = m_entrySearcher.search("secret123", m_rootGroup);
-    QCOMPARE(m_searchResult.count(), 0);
+    QCOMPARE(m_searchResult.count(), 1);
+    QVERIFY(m_searchResult.contains(entry4));
 
     m_searchResult = m_entrySearcher.search("public456", m_rootGroup);
     QCOMPARE(m_searchResult.count(), 1);
