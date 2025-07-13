@@ -140,12 +140,11 @@ cpack -G "ZIP;WIX"
 
 ## Windows Installer (WiX)
 
-For creating Windows installers, KeePassXC supports both WiX Toolset v6 (recommended) and legacy v3:
+For creating Windows installers, KeePassXC requires WiX Toolset v4 or later:
 
-- **WiX v6**: Download from [wixtoolset.org](https://wixtoolset.org/). Uses unified `wix.exe` tool and updated XML schema.
-- **WiX v3**: Legacy support maintained for existing build environments. Uses separate `candle.exe` and `light.exe` tools.
+- **WiX v4+**: Download from [wixtoolset.org](https://wixtoolset.org/). Uses unified `wix.exe` tool with the modern .NET-based architecture.
 
-The build system automatically detects and uses the available WiX version. No manual configuration is required.
+The build system automatically detects the WiX installation. No manual configuration is required.
 
 Testing
 =======
