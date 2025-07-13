@@ -486,6 +486,9 @@ if(WIN32)
 
     string(REGEX REPLACE "-.*$" "" KEEPASSXC_VERSION_CLEAN ${KEEPASSXC_VERSION})
 
+    # WiX Toolset configuration for Windows installer
+    # Supports both WiX v6 (recommended) and legacy WiX v3
+    # WiX v6 uses unified wix.exe tool and updated XML schema
     set(CPACK_GENERATOR "ZIP;WIX")
     set(CPACK_COMPONENTS_ALL "")
     set(CPACK_STRIP_FILES OFF)
@@ -522,7 +525,8 @@ if(WIN32)
             "${CMAKE_SOURCE_DIR}/share/windows/KPXC_InstallDirDlg.wxs"
             "${CMAKE_SOURCE_DIR}/share/windows/KPXC_ExitDlg.wxs")
     set(CPACK_WIX_PROPERTY_ARPURLINFOABOUT  "https://keepassxc.org")
-    set(CPACK_WIX_EXTENSIONS "WixUtilExtension.dll")
+    # WiX v6 uses new extension naming: WixToolset.Util.wixext instead of WixUtilExtension.dll
+    set(CPACK_WIX_EXTENSIONS "WixToolset.Util.wixext")
     include(CPack)
 
     if(NOT VCPKG_INSTALLED_DIR)

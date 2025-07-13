@@ -138,6 +138,15 @@ To package using CMake, run the following command using whichever [generators](h
 cpack -G "ZIP;WIX"
 ```
 
+## Windows Installer (WiX)
+
+For creating Windows installers, KeePassXC supports both WiX Toolset v6 (recommended) and legacy v3:
+
+- **WiX v6**: Download from [wixtoolset.org](https://wixtoolset.org/). Uses unified `wix.exe` tool and updated XML schema.
+- **WiX v3**: Legacy support maintained for existing build environments. Uses separate `candle.exe` and `light.exe` tools.
+
+The build system automatically detects and uses the available WiX version. No manual configuration is required.
+
 Testing
 =======
 

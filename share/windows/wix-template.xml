@@ -2,9 +2,8 @@
 
 <?include "cpack_variables.wxi"?>
 
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
-    xmlns:util="http://schemas.microsoft.com/wix/UtilExtension"
-    RequiredVersion="3.6.3303.0">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+    xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
 
     <Product Id="$(var.CPACK_WIX_PRODUCT_GUID)"
         Name="$(var.CPACK_PACKAGE_NAME)"
@@ -13,7 +12,7 @@
         Manufacturer="$(var.CPACK_PACKAGE_VENDOR)"
         UpgradeCode="$(var.CPACK_WIX_UPGRADE_GUID)">
 
-        <Package InstallScope="perMachine" InstallerVersion="301" Compressed="yes"/>
+        <Package InstallScope="perMachine" InstallerVersion="500" Compressed="yes"/>
 
         <Media Id="1" Cabinet="media1.cab" EmbedCab="yes"/>
 
@@ -118,15 +117,15 @@
 
         <!-- Action to launch application after installer exits -->
         <Property Id="WixShellExecTarget" Value="[#CM_FP_KeePassXC.exe]" />
-        <CustomAction Id="LaunchApplication" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" />
+        <CustomAction Id="LaunchApplication" DllEntry="WixShellExec" />
 
         <!-- Action to kill running KeePassXC process -->
         <Property Id="WixQuietExecCmdLine" Value='"[SystemFolder]taskkill.exe" /IM KeePassXC.exe' />
-        <CustomAction Id="KillKeePassXC" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="immediate" Return="ignore" />
+        <CustomAction Id="KillKeePassXC" DllEntry="WixQuietExec" Execute="immediate" Return="ignore" />
 
         <!-- Action to kill running keepassxc-proxy processes -->
         <Property Id="WixSilentExecCmdLine" Value='"[SystemFolder]taskkill.exe" /IM keepassxc-proxy.exe /F' />
-        <CustomAction Id="KillKeePassXCProxy" BinaryKey="WixCA" DllEntry="WixSilentExec" Execute="immediate" Return="ignore" />
+        <CustomAction Id="KillKeePassXCProxy" DllEntry="WixSilentExec" Execute="immediate" Return="ignore" />
 
         <InstallExecuteSequence>
             <Custom Action="KillKeePassXC" Before="InstallValidate" />
