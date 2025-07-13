@@ -527,6 +527,10 @@ if(WIN32)
     set(CPACK_WIX_PROPERTY_ARPURLINFOABOUT  "https://keepassxc.org")
     # WiX v6 uses new extension naming: WixToolset.Util.wixext instead of WixUtilExtension.dll
     set(CPACK_WIX_EXTENSIONS "WixToolset.Util.wixext")
+    
+    # Enable WiX version detection and compatibility
+    include(WiXCompat)
+    
     include(CPack)
 
     if(NOT VCPKG_INSTALLED_DIR)
