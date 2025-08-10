@@ -57,9 +57,9 @@ public:
     struct SearchResult
     {
         Entry* entry;
-        double relevanceScore;
+        int relevanceScore;
 
-        SearchResult(Entry* e = nullptr, double score = 0.0)
+        SearchResult(Entry* e = nullptr, int score = 0)
             : entry(e)
             , relevanceScore(score)
         {
@@ -94,10 +94,10 @@ public:
 
 private:
     bool searchEntryImpl(const Entry* entry);
-    double searchEntryWithScore(const Entry* entry);
-    double calculateFieldScore(Field field, const QString& fieldValue, const SearchTerm& term);
-    double getFieldPriority(Field field);
-    double getMatchQuality(const QString& fieldValue, const QRegularExpression& regex);
+    int searchEntryWithScore(const Entry* entry);
+    int calculateFieldScore(Field field, const QString& fieldValue, const SearchTerm& term);
+    int getFieldPriority(Field field);
+    int getMatchQuality(const QString& fieldValue, const QRegularExpression& regex);
     void parseSearchTerms(const QString& searchString);
 
     bool m_caseSensitive;

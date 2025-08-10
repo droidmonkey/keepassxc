@@ -238,10 +238,10 @@ void EntryView::displaySearchResults(const QList<EntrySearcher::SearchResult>& s
     header()->showSection(EntryModel::ParentGroup);
     header()->showSection(EntryModel::RelevanceScore);
 
-    setFirstEntryActive();
+    // Sort by RelevanceScore (second column) in descending order by default
+    sortByColumn(EntryModel::RelevanceScore, Qt::DescendingOrder);
 
-    // Let QTreeView handle sorting instead of pre-sorting
-    // Don't force any particular sort order
+    setFirstEntryActive();
 
     m_inSearchMode = true;
 }

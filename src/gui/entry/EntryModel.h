@@ -33,23 +33,23 @@ public:
     enum ModelColumn
     {
         ParentGroup = 0,
-        Title = 1,
-        Username = 2,
-        Password = 3,
-        Url = 4,
-        Notes = 5,
-        Expires = 6,
-        Created = 7,
-        Modified = 8,
-        Accessed = 9,
-        Paperclip = 10,
-        Attachments = 11,
-        Totp = 12,
-        Size = 13,
-        PasswordStrength = 14,
-        Color = 15,
-        ParentGroupPath = 16,
-        RelevanceScore = 17
+        RelevanceScore = 1,
+        Title = 2,
+        Username = 3,
+        Password = 4,
+        Url = 5,
+        Notes = 6,
+        Expires = 7,
+        Created = 8,
+        Modified = 9,
+        Accessed = 10,
+        Paperclip = 11,
+        Attachments = 12,
+        Totp = 13,
+        Size = 14,
+        PasswordStrength = 15,
+        Color = 16,
+        ParentGroupPath = 17
     };
 
     explicit EntryModel(QObject* parent = nullptr);

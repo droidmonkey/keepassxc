@@ -68,8 +68,8 @@ void TestEntryModel::test()
     entry1->setTitle("changed");
     QCOMPARE(spyDataChanged.count(), 1);
 
-    QModelIndex index1 = model->index(0, 1);
-    QModelIndex index2 = model->index(1, 1);
+    QModelIndex index1 = model->index(0, EntryModel::Title);
+    QModelIndex index2 = model->index(1, EntryModel::Title);
 
     QCOMPARE(model->data(index1).toString(), entry1->title());
     QCOMPARE(model->data(index2).toString(), entry2->title());

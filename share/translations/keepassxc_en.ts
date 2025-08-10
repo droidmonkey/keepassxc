@@ -4294,6 +4294,10 @@ Would you like to overwrite the existing attachment?</source>
         <source>Group Path</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Score</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>EntryPreviewWidget</name>

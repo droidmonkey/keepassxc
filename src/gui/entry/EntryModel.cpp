@@ -294,7 +294,7 @@ QVariant EntryModel::data(const QModelIndex& index, int role) const
         }
         case RelevanceScore:
             if (m_inSearchMode && index.row() < m_searchResults.size()) {
-                return QString::number(m_searchResults.at(index.row()).relevanceScore, 'f', 1);
+                return QString::number(m_searchResults.at(index.row()).relevanceScore);
             }
             return "";
         }
@@ -336,7 +336,7 @@ QVariant EntryModel::data(const QModelIndex& index, int role) const
             if (m_inSearchMode && index.row() < m_searchResults.size()) {
                 return m_searchResults.at(index.row()).relevanceScore;
             }
-            return 0.0;
+            return 0;
         default:
             // For all other columns, simply use data provided by Qt::Display-
             // Role for sorting
@@ -425,6 +425,10 @@ QVariant EntryModel::data(const QModelIndex& index, int role) const
             if (backgroundColor.isValid()) {
                 return QVariant(backgroundColor);
             }
+        }
+    } else if (role == Qt::TextAlignmentRole) {
+        if (index.column() == RelevanceScore) {
+            return Qt::AlignCenter;
         }
     } else if (role == Qt::ToolTipRole) {
         if (index.column() == PasswordStrength && !entry->password().isEmpty() && !entry->excludeFromReports()) {
