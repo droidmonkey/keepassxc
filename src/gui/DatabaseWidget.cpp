@@ -629,8 +629,14 @@ void DatabaseWidget::deleteEntries(QList<Entry*> selectedEntries, bool confirm)
     }
 
     // Find the index above the first entry for selection after deletion
-    auto index = m_entryView->indexFromEntry(selectedEntries.first());
-    index = m_entryView->indexAbove(index);
+    QModelIndex topIndex;
+    for (auto entry : selectedEntries) {
+        auto index = m_entryView->indexFromEntry(entry);
+        if (!topIndex.isValid() || index.row() < topIndex.row()) {
+            topIndex = index;
+        }
+    }
+    topIndex = topIndex.siblingAtRow(topIndex.row() - 1);
 
     // Confirm entry removal before moving forward
     auto recycleBin = m_db->metadata()->recycleBin();
@@ -644,8 +650,8 @@ void DatabaseWidget::deleteEntries(QList<Entry*> selectedEntries, bool confirm)
     GuiTools::deleteEntriesResolveReferences(this, selectedEntries, permanent);
 
     // Select the row above the deleted entries
-    if (index.isValid()) {
-        m_entryView->setCurrentIndex(index);
+    if (topIndex.isValid()) {
+        m_entryView->setCurrentIndex(topIndex);
     } else {
         m_entryView->setFirstEntryActive();
     }

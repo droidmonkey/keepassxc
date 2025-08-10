@@ -63,7 +63,7 @@ public:
 };
 
 EntryView::EntryView(QWidget* parent)
-    : QTreeView(parent)
+    : QTableView(parent)
     , m_model(new EntryModel(this))
     , m_sortModel(new SortFilterHideProxyModel(this))
     , m_lastIndex(-1)
@@ -76,16 +76,17 @@ EntryView::EntryView(QWidget* parent)
     m_sortModel->setSortCaseSensitivity(Qt::CaseInsensitive);
     // Use Qt::UserRole as sort role, see EntryModel::data()
     m_sortModel->setSortRole(Qt::UserRole);
-    QTreeView::setModel(m_sortModel);
-    QTreeView::setItemDelegateForColumn(EntryModel::PasswordStrength, new PasswordStrengthItemDelegate(this));
+    QTableView::setModel(m_sortModel);
+    QTableView::setItemDelegateForColumn(EntryModel::PasswordStrength, new PasswordStrengthItemDelegate(this));
 
-    setUniformRowHeights(true);
-    setRootIsDecorated(false);
+    verticalHeader()->setVisible(false);
+    setShowGrid(false);
     setAlternatingRowColors(true);
     setDragEnabled(true);
     setSortingEnabled(true);
-    setSelectionMode(QAbstractItemView::ExtendedSelection);
-
+    setSelectionBehavior(SelectRows);
+    setSelectionMode(ExtendedSelection);
+    
     // QAbstractItemView::startDrag() uses this property as the default drag action
     setDefaultDropAction(Qt::MoveAction);
 
@@ -102,8 +103,8 @@ EntryView::EntryView(QWidget* parent)
     // column index as data
     m_columnActions = new QActionGroup(this);
     m_columnActions->setExclusive(false);
-    for (int visualIndex = 0; visualIndex < header()->count(); ++visualIndex) {
-        int logicalIndex = header()->logicalIndex(visualIndex);
+    for (int visualIndex = 0; visualIndex < horizontalHeader()->count(); ++visualIndex) {
+        int logicalIndex = horizontalHeader()->logicalIndex(visualIndex);
         QString caption = m_model->headerData(logicalIndex, Qt::Horizontal, Qt::DisplayRole).toString();
         if (caption.isEmpty()) {
             caption = m_model->headerData(logicalIndex, Qt::Horizontal, Qt::ToolTipRole).toString();
@@ -122,15 +123,15 @@ EntryView::EntryView(QWidget* parent)
     m_headerMenu->addSeparator();
     m_headerMenu->addAction(tr("Reset to defaults"), this, SLOT(resetViewToDefaults()));
 
-    header()->setDefaultSectionSize(100);
-    header()->setStretchLastSection(false);
-    header()->setContextMenuPolicy(Qt::CustomContextMenu);
+    horizontalHeader()->setDefaultSectionSize(100);
+    horizontalHeader()->setStretchLastSection(false);
+    horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
 
-    connect(header(), SIGNAL(customContextMenuRequested(QPoint)), SLOT(showHeaderMenu(QPoint)));
-    connect(header(), SIGNAL(sectionCountChanged(int, int)), SIGNAL(viewStateChanged()));
-    connect(header(), SIGNAL(sectionMoved(int, int, int)), SIGNAL(viewStateChanged()));
-    connect(header(), SIGNAL(sectionResized(int, int, int)), SIGNAL(viewStateChanged()));
-    connect(header(), SIGNAL(sortIndicatorChanged(int, Qt::SortOrder)), SLOT(sortIndicatorChanged(int, Qt::SortOrder)));
+    connect(horizontalHeader(), SIGNAL(customContextMenuRequested(QPoint)), SLOT(showHeaderMenu(QPoint)));
+    connect(horizontalHeader(), SIGNAL(sectionCountChanged(int, int)), SIGNAL(viewStateChanged()));
+    connect(horizontalHeader(), SIGNAL(sectionMoved(int, int, int)), SIGNAL(viewStateChanged()));
+    connect(horizontalHeader(), SIGNAL(sectionResized(int, int, int)), SIGNAL(viewStateChanged()));
+    connect(horizontalHeader(), SIGNAL(sortIndicatorChanged(int, Qt::SortOrder)), SLOT(sortIndicatorChanged(int, Qt::SortOrder)));
 }
 
 void EntryView::contextMenuShortcutPressed()
@@ -154,8 +155,8 @@ void EntryView::sortIndicatorChanged(int logicalIndex, Qt::SortOrder order)
     {
         // a change from descending to ascending on the same column occurred
         // this sets the header into no sort order
-        header()->setSortIndicator(-1, Qt::AscendingOrder);
-        // do not emit any signals,  header()->setSortIndicator recursively calls this
+        horizontalHeader()->setSortIndicator(-1, Qt::AscendingOrder);
+        // do not emit any signals,  horizontalHeader()->setSortIndicator recursively calls this
         // function and the signals are emitted in the else part
     } else {
         // emit entrySelectionChanged even though the selection did not really change
@@ -165,7 +166,7 @@ void EntryView::sortIndicatorChanged(int logicalIndex, Qt::SortOrder order)
         emit viewStateChanged();
     }
 
-    header()->setSortIndicatorShown(true);
+    horizontalHeader()->setSortIndicatorShown(true);
     resetFixedColumns();
 }
 
@@ -174,7 +175,7 @@ void EntryView::keyPressEvent(QKeyEvent* event)
     if ((event->key() == Qt::Key_Enter || event->key() == Qt::Key_Return) && currentIndex().isValid()) {
         emitEntryActivated(currentIndex());
 #ifdef Q_OS_MACOS
-        // Pressing return does not emit the QTreeView::activated signal on mac os
+        // Pressing return does not emit the QTableView::activated signal on mac os
         emit activated(currentIndex());
 #endif
     }
@@ -197,20 +198,20 @@ void EntryView::keyPressEvent(QKeyEvent* event)
         }
     }
 
-    QTreeView::keyPressEvent(event);
+    QTableView::keyPressEvent(event);
 }
 
 void EntryView::focusInEvent(QFocusEvent* event)
 {
     emit entrySelectionChanged(currentEntry());
-    QTreeView::focusInEvent(event);
+    QTableView::focusInEvent(event);
 }
 
 void EntryView::displayGroup(Group* group)
 {
     m_model->setGroup(group);
-    header()->hideSection(EntryModel::ParentGroup);
-    header()->hideSection(EntryModel::RelevanceScore);
+    horizontalHeader()->hideSection(EntryModel::ParentGroup);
+    horizontalHeader()->hideSection(EntryModel::RelevanceScore);
     setFirstEntryActive();
     m_inSearchMode = false;
 }
@@ -218,8 +219,8 @@ void EntryView::displayGroup(Group* group)
 void EntryView::displaySearch(const QList<Entry*>& entries)
 {
     m_model->setEntries(entries);
-    header()->showSection(EntryModel::ParentGroup);
-    header()->hideSection(EntryModel::RelevanceScore);
+    horizontalHeader()->showSection(EntryModel::ParentGroup);
+    horizontalHeader()->hideSection(EntryModel::RelevanceScore);
 
     setFirstEntryActive();
 
@@ -235,8 +236,8 @@ void EntryView::displaySearch(const QList<Entry*>& entries)
 void EntryView::displaySearchResults(const QList<EntrySearcher::SearchResult>& searchResults)
 {
     m_model->setSearchResults(searchResults);
-    header()->showSection(EntryModel::ParentGroup);
-    header()->showSection(EntryModel::RelevanceScore);
+    horizontalHeader()->showSection(EntryModel::ParentGroup);
+    horizontalHeader()->showSection(EntryModel::RelevanceScore);
 
     // Sort by RelevanceScore (second column) in descending order by default
     sortByColumn(EntryModel::RelevanceScore, Qt::DescendingOrder);
@@ -263,7 +264,7 @@ bool EntryView::inSearchMode()
 
 bool EntryView::isSorted()
 {
-    return header()->sortIndicatorSection() != -1;
+    return horizontalHeader()->sortIndicatorSection() != -1;
 }
 
 void EntryView::emitEntryActivated(const QModelIndex& index)
@@ -341,7 +342,7 @@ int EntryView::currentEntryIndex()
  */
 QByteArray EntryView::viewState() const
 {
-    return header()->saveState();
+    return horizontalHeader()->saveState();
 }
 
 /**
@@ -350,8 +351,8 @@ QByteArray EntryView::viewState() const
 bool EntryView::setViewState(const QByteArray& state)
 {
     // Reset to unsorted first (https://bugreports.qt.io/browse/QTBUG-86694)
-    header()->setSortIndicator(-1, Qt::AscendingOrder);
-    bool status = header()->restoreState(state);
+    horizontalHeader()->setSortIndicator(-1, Qt::AscendingOrder);
+    bool status = horizontalHeader()->restoreState(state);
     resetFixedColumns();
     m_columnsNeedRelayout = state.isEmpty();
     onHeaderChanged();
@@ -404,15 +405,15 @@ void EntryView::toggleColumnVisibility(QAction* action)
         m_model->setBackgroundColorVisible(!action->isChecked());
     }
     if (action->isChecked()) {
-        header()->showSection(columnIndex);
-        if (header()->sectionSize(columnIndex) == 0) {
-            header()->resizeSection(columnIndex, header()->defaultSectionSize());
+        horizontalHeader()->showSection(columnIndex);
+        if (horizontalHeader()->sectionSize(columnIndex) == 0) {
+            horizontalHeader()->resizeSection(columnIndex, horizontalHeader()->defaultSectionSize());
         }
         resetFixedColumns();
         return;
     }
-    if ((header()->count() - header()->hiddenSectionCount()) > 1) {
-        header()->hideSection(columnIndex);
+    if ((horizontalHeader()->count() - horizontalHeader()->hiddenSectionCount()) > 1) {
+        horizontalHeader()->hideSection(columnIndex);
         return;
     }
     action->setChecked(true);
@@ -424,7 +425,7 @@ void EntryView::toggleColumnVisibility(QAction* action)
  * NOTE:
  * If EntryView::resizeEvent() is overridden at some point in the future,
  * its implementation MUST call the corresponding parent method using
- * 'QTreeView::resizeEvent(event)'. Without this, fitting to window will
+ * 'QTableView::resizeEvent(event)'. Without this, fitting to window will
  * be broken and/or work unreliably (stumbled upon during testing)
  *
  * NOTE:
@@ -434,10 +435,10 @@ void EntryView::toggleColumnVisibility(QAction* action)
  */
 void EntryView::fitColumnsToWindow()
 {
-    header()->setSectionResizeMode(QHeaderView::Stretch);
+    horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     resetFixedColumns();
     QCoreApplication::processEvents();
-    header()->setSectionResizeMode(QHeaderView::Interactive);
+    horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
     resetFixedColumns();
     emit viewStateChanged();
 }
@@ -448,10 +449,10 @@ void EntryView::fitColumnsToWindow()
  */
 void EntryView::fitColumnsToContents()
 {
-    header()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     resetFixedColumns();
     QCoreApplication::processEvents();
-    header()->setSectionResizeMode(QHeaderView::Interactive);
+    horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
     resetFixedColumns();
     emit viewStateChanged();
 }
@@ -463,19 +464,19 @@ void EntryView::resetFixedColumns()
 {
     for (const auto& col : {EntryModel::Paperclip, EntryModel::Totp, EntryModel::PasswordStrength}) {
         if (!isColumnHidden(col)) {
-            header()->setSectionResizeMode(col, QHeaderView::Fixed);
+            horizontalHeader()->setSectionResizeMode(col, QHeaderView::Fixed);
 
             // Increase column width, if sorting, to accommodate icon and arrow
             auto width = ICON_ONLY_SECTION_SIZE;
-            if (header()->sortIndicatorSection() == col
+            if (horizontalHeader()->sortIndicatorSection() == col
                 && config()->get(Config::GUI_ApplicationTheme).toString() != "classic") {
                 width += 18;
             }
-            header()->resizeSection(col, width);
+            horizontalHeader()->resizeSection(col, width);
         }
     }
-    header()->setMinimumSectionSize(1);
-    header()->resizeSection(EntryModel::Color, ICON_ONLY_SECTION_SIZE);
+    horizontalHeader()->setMinimumSectionSize(1);
+    horizontalHeader()->resizeSection(EntryModel::Color, ICON_ONLY_SECTION_SIZE);
 }
 
 /**
@@ -485,48 +486,48 @@ void EntryView::resetViewToDefaults()
 {
     // Reduce number of columns that are shown by default
     if (m_inSearchMode) {
-        header()->showSection(EntryModel::ParentGroup);
-        header()->showSection(EntryModel::RelevanceScore);
+        horizontalHeader()->showSection(EntryModel::ParentGroup);
+        horizontalHeader()->showSection(EntryModel::RelevanceScore);
     } else {
-        header()->hideSection(EntryModel::ParentGroup);
-        header()->hideSection(EntryModel::RelevanceScore);
+        horizontalHeader()->hideSection(EntryModel::ParentGroup);
+        horizontalHeader()->hideSection(EntryModel::RelevanceScore);
     }
-    header()->showSection(EntryModel::Title);
-    header()->showSection(EntryModel::Username);
-    header()->showSection(EntryModel::Url);
-    header()->showSection(EntryModel::Notes);
-    header()->showSection(EntryModel::Modified);
-    header()->showSection(EntryModel::Paperclip);
-    header()->showSection(EntryModel::Totp);
+    horizontalHeader()->showSection(EntryModel::Title);
+    horizontalHeader()->showSection(EntryModel::Username);
+    horizontalHeader()->showSection(EntryModel::Url);
+    horizontalHeader()->showSection(EntryModel::Notes);
+    horizontalHeader()->showSection(EntryModel::Modified);
+    horizontalHeader()->showSection(EntryModel::Paperclip);
+    horizontalHeader()->showSection(EntryModel::Totp);
 
-    header()->hideSection(EntryModel::Password);
-    header()->hideSection(EntryModel::Expires);
-    header()->hideSection(EntryModel::Created);
-    header()->hideSection(EntryModel::Accessed);
-    header()->hideSection(EntryModel::Attachments);
-    header()->hideSection(EntryModel::Size);
-    header()->hideSection(EntryModel::PasswordStrength);
-    header()->hideSection(EntryModel::Color);
-    header()->hideSection(EntryModel::ParentGroupPath);
+    horizontalHeader()->hideSection(EntryModel::Password);
+    horizontalHeader()->hideSection(EntryModel::Expires);
+    horizontalHeader()->hideSection(EntryModel::Created);
+    horizontalHeader()->hideSection(EntryModel::Accessed);
+    horizontalHeader()->hideSection(EntryModel::Attachments);
+    horizontalHeader()->hideSection(EntryModel::Size);
+    horizontalHeader()->hideSection(EntryModel::PasswordStrength);
+    horizontalHeader()->hideSection(EntryModel::Color);
+    horizontalHeader()->hideSection(EntryModel::ParentGroupPath);
 
     // Reset column order to logical indices
-    for (int i = 0; i < header()->count(); ++i) {
-        header()->moveSection(header()->visualIndex(i), i);
+    for (int i = 0; i < horizontalHeader()->count(); ++i) {
+        horizontalHeader()->moveSection(horizontalHeader()->visualIndex(i), i);
     }
 
     // Reorder some columns
-    header()->moveSection(header()->visualIndex(EntryModel::RelevanceScore), 0);
-    header()->moveSection(header()->visualIndex(EntryModel::ParentGroup), 1);
-    header()->moveSection(header()->visualIndex(EntryModel::Paperclip), 2);
-    header()->moveSection(header()->visualIndex(EntryModel::Totp), 3);
-
-    // Sort by title or group (depending on the mode)
-    m_sortModel->sort(EntryModel::Title, Qt::AscendingOrder);
-    sortByColumn(EntryModel::Title, Qt::AscendingOrder);
+    horizontalHeader()->moveSection(horizontalHeader()->visualIndex(EntryModel::RelevanceScore), 0);
+    horizontalHeader()->moveSection(horizontalHeader()->visualIndex(EntryModel::ParentGroup), 1);
+    horizontalHeader()->moveSection(horizontalHeader()->visualIndex(EntryModel::Paperclip), 2);
+    horizontalHeader()->moveSection(horizontalHeader()->visualIndex(EntryModel::Totp), 3);
 
     if (m_inSearchMode) {
         m_sortModel->sort(EntryModel::RelevanceScore, Qt::DescendingOrder);
         sortByColumn(EntryModel::RelevanceScore, Qt::DescendingOrder);
+        resizeColumnToContents(EntryModel::RelevanceScore);
+    } else {
+        m_sortModel->sort(EntryModel::Title, Qt::AscendingOrder);
+        sortByColumn(EntryModel::Title, Qt::AscendingOrder);
     }
 
     // The following call only relayouts reliably if the widget has been shown
@@ -546,7 +547,7 @@ void EntryView::onHeaderChanged()
 
 void EntryView::showEvent(QShowEvent* event)
 {
-    QTreeView::showEvent(event);
+    QTableView::showEvent(event);
 
     // Check if header columns need to be resized to sensible defaults.
     // This is only needed if no previous view state has been loaded.
@@ -621,5 +622,5 @@ void EntryView::startDrag(Qt::DropActions supportedActions)
 
 bool EntryView::isColumnHidden(int logicalIndex)
 {
-    return header()->isSectionHidden(logicalIndex) || header()->sectionSize(logicalIndex) == 0;
+    return horizontalHeader()->isSectionHidden(logicalIndex) || horizontalHeader()->sectionSize(logicalIndex) == 0;
 }
