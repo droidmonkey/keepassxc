@@ -520,6 +520,8 @@ QVariant EntryModel::headerData(int section, Qt::Orientation orientation, int ro
             return tr("Has TOTP");
         case Color:
             return tr("Background Color");
+        case RelevanceScore:
+            return tr("Search Relevance");
         }
     }
 

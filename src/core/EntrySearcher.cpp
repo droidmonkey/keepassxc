@@ -392,9 +392,7 @@ int EntrySearcher::searchEntryWithScore(const Entry* entry)
         hierarchy = entry->group()->hierarchy().join('/').prepend("/");
     }
 
-    // By default, empty term matches every entry with score 1
-    // However when skipping protected fields, we will reject everything instead
-    int totalScore = m_skipProtected ? 0 : 1;
+    int totalScore = 0;
     int matchedTerms = 0;
 
     for (const auto& term : m_searchTerms) {
@@ -535,9 +533,9 @@ int EntrySearcher::searchEntryWithScore(const Entry* entry)
         totalScore = totalScore * (100 + 20 * (matchedTerms - 1)) / 100; // 20% bonus per additional match
     }
 
-    // Bonus for non-expired entries
-    if (!entry->isExpired()) {
-        totalScore += 1;
+    // Remove a point for expired entries
+    if (entry->isExpired()) {
+        totalScore -= 1;
     }
 
     return totalScore;

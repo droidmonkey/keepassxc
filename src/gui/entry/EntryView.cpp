@@ -39,7 +39,7 @@ class PasswordStrengthItemDelegate : public QStyledItemDelegate
 {
 public:
     explicit PasswordStrengthItemDelegate(QObject* parent)
-        : QStyledItemDelegate(parent){};
+        : QStyledItemDelegate(parent) {};
 
     void initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const override
     {
@@ -291,7 +291,7 @@ Entry* EntryView::currentEntry()
 QList<Entry*> EntryView::selectedEntries()
 {
     QList<Entry*> list;
-    for (auto row : selectionModel()->selectedRows()) {
+    for (const auto& row : selectionModel()->selectedRows()) {
         list.append(m_model->entryFromIndex(m_sortModel->mapToSource(row)));
     }
     return list;
@@ -364,6 +364,7 @@ bool EntryView::setViewState(const QByteArray& state)
  */
 void EntryView::showHeaderMenu(const QPoint& position)
 {
+    const QList<int> searchVisible({EntryModel::ParentGroup, EntryModel::RelevanceScore});
     const QList<QAction*> actions = m_columnActions->actions();
     for (auto& action : actions) {
         Q_ASSERT(static_cast<QMetaType::Type>(action->data().type()) == QMetaType::Int);
@@ -372,8 +373,12 @@ void EntryView::showHeaderMenu(const QPoint& position)
         }
         int columnIndex = action->data().toInt();
         action->setChecked(!isColumnHidden(columnIndex));
+
+        // Adjust visibility for search mode columns
+        if (searchVisible.contains(columnIndex)) {
+            action->setVisible(inSearchMode());
+        }
     }
-    actions[EntryModel::ParentGroup]->setVisible(inSearchMode());
 
     m_headerMenu->popup(mapToGlobal(position));
 }
@@ -503,7 +508,6 @@ void EntryView::resetViewToDefaults()
     header()->hideSection(EntryModel::PasswordStrength);
     header()->hideSection(EntryModel::Color);
     header()->hideSection(EntryModel::ParentGroupPath);
-    onHeaderChanged();
 
     // Reset column order to logical indices
     for (int i = 0; i < header()->count(); ++i) {
@@ -511,16 +515,18 @@ void EntryView::resetViewToDefaults()
     }
 
     // Reorder some columns
-    header()->moveSection(header()->visualIndex(EntryModel::Paperclip), 1);
-    header()->moveSection(header()->visualIndex(EntryModel::Totp), 2);
+    header()->moveSection(header()->visualIndex(EntryModel::RelevanceScore), 0);
+    header()->moveSection(header()->visualIndex(EntryModel::ParentGroup), 1);
+    header()->moveSection(header()->visualIndex(EntryModel::Paperclip), 2);
+    header()->moveSection(header()->visualIndex(EntryModel::Totp), 3);
 
     // Sort by title or group (depending on the mode)
     m_sortModel->sort(EntryModel::Title, Qt::AscendingOrder);
     sortByColumn(EntryModel::Title, Qt::AscendingOrder);
 
     if (m_inSearchMode) {
-        m_sortModel->sort(EntryModel::ParentGroup, Qt::AscendingOrder);
-        sortByColumn(EntryModel::ParentGroup, Qt::AscendingOrder);
+        m_sortModel->sort(EntryModel::RelevanceScore, Qt::DescendingOrder);
+        sortByColumn(EntryModel::RelevanceScore, Qt::DescendingOrder);
     }
 
     // The following call only relayouts reliably if the widget has been shown
@@ -529,6 +535,8 @@ void EntryView::resetViewToDefaults()
     if (isVisible()) {
         fitColumnsToWindow();
     }
+
+    onHeaderChanged();
 }
 
 void EntryView::onHeaderChanged()
