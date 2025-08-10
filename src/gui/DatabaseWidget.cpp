@@ -1717,30 +1717,24 @@ void DatabaseWidget::search(const QString& searchtext)
 
     auto scoredResults = m_entrySearcher->searchWithScore(searchtext, searchGroup);
 
-    // Convert scored results to entry list for compatibility
-    QList<Entry*> results;
-    for (const auto& result : scoredResults) {
-        results.append(result.entry);
-    }
-
     // Display a label detailing our search results
     if (!m_nextSearchLabelText.isEmpty()) {
         // Custom searches don't display if there are no results
-        if (results.isEmpty()) {
+        if (scoredResults.isEmpty()) {
             endSearch();
             return;
         }
         m_searchingLabel->setText(m_nextSearchLabelText);
         m_nextSearchLabelText.clear();
-    } else if (!results.isEmpty()) {
-        m_searchingLabel->setText(tr("Search Results (%1)").arg(results.size()));
+    } else if (!scoredResults.isEmpty()) {
+        m_searchingLabel->setText(tr("Search Results (%1)").arg(scoredResults.size()));
     } else {
         m_searchingLabel->setText(tr("No Results"));
     }
 
     emit searchModeAboutToActivate();
 
-    m_entryView->displaySearch(results);
+    m_entryView->displaySearchResults(scoredResults);
     m_lastSearchText = searchtext;
 
     m_searchingLabel->setVisible(true);

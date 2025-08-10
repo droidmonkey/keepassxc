@@ -210,6 +210,7 @@ void EntryView::displayGroup(Group* group)
 {
     m_model->setGroup(group);
     header()->hideSection(EntryModel::ParentGroup);
+    header()->hideSection(EntryModel::RelevanceScore);
     setFirstEntryActive();
     m_inSearchMode = false;
 }
@@ -218,6 +219,7 @@ void EntryView::displaySearch(const QList<Entry*>& entries)
 {
     m_model->setEntries(entries);
     header()->showSection(EntryModel::ParentGroup);
+    header()->hideSection(EntryModel::RelevanceScore);
 
     setFirstEntryActive();
 
@@ -226,6 +228,20 @@ void EntryView::displaySearch(const QList<Entry*>& entries)
     // Reset sort column to 'Group', overrides DatabaseWidgetStateSync
     // m_sortModel->sort(EntryModel::ParentGroup, Qt::AscendingOrder);
     // sortByColumn(EntryModel::ParentGroup, Qt::AscendingOrder);
+
+    m_inSearchMode = true;
+}
+
+void EntryView::displaySearchResults(const QList<EntrySearcher::SearchResult>& searchResults)
+{
+    m_model->setSearchResults(searchResults);
+    header()->showSection(EntryModel::ParentGroup);
+    header()->showSection(EntryModel::RelevanceScore);
+
+    setFirstEntryActive();
+
+    // Let QTreeView handle sorting instead of pre-sorting
+    // Don't force any particular sort order
 
     m_inSearchMode = true;
 }
@@ -465,8 +481,10 @@ void EntryView::resetViewToDefaults()
     // Reduce number of columns that are shown by default
     if (m_inSearchMode) {
         header()->showSection(EntryModel::ParentGroup);
+        header()->showSection(EntryModel::RelevanceScore);
     } else {
         header()->hideSection(EntryModel::ParentGroup);
+        header()->hideSection(EntryModel::RelevanceScore);
     }
     header()->showSection(EntryModel::Title);
     header()->showSection(EntryModel::Username);

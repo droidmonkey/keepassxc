@@ -51,6 +51,7 @@ public:
 
     void displayGroup(Group* group);
     void displaySearch(const QList<Entry*>& entries);
+    void displaySearchResults(const QList<EntrySearcher::SearchResult>& searchResults);
 
 signals:
     void entryActivated(Entry* entry, EntryModel::ModelColumn column);

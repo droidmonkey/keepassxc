@@ -43,13 +43,28 @@ EntryModel::EntryModel(QObject* parent)
 
 Entry* EntryModel::entryFromIndex(const QModelIndex& index) const
 {
-    Q_ASSERT(index.isValid() && index.row() < m_entries.size());
+    Q_ASSERT(index.isValid());
+    if (m_inSearchMode && !m_searchResults.isEmpty()) {
+        Q_ASSERT(index.row() < m_searchResults.size());
+        return m_searchResults.at(index.row()).entry;
+    }
+    Q_ASSERT(index.row() < m_entries.size());
     return m_entries.at(index.row());
 }
 
 QModelIndex EntryModel::indexFromEntry(Entry* entry) const
 {
-    int row = m_entries.indexOf(entry);
+    int row = -1;
+    if (m_inSearchMode && !m_searchResults.isEmpty()) {
+        for (int i = 0; i < m_searchResults.size(); ++i) {
+            if (m_searchResults.at(i).entry == entry) {
+                row = i;
+                break;
+            }
+        }
+    } else {
+        row = m_entries.indexOf(entry);
+    }
     if (row >= 0) {
         return index(row, 1);
     }
@@ -70,6 +85,8 @@ void EntryModel::setGroup(Group* group)
     m_allGroups.clear();
     m_entries = group->entries();
     m_orgEntries.clear();
+    m_searchResults.clear();
+    m_inSearchMode = false;
 
     makeConnections(group);
 
@@ -86,6 +103,8 @@ void EntryModel::setEntries(const QList<Entry*>& entries)
     m_allGroups.clear();
     m_entries = entries;
     m_orgEntries = entries;
+    m_searchResults.clear();
+    m_inSearchMode = false;
 
     for (const auto entry : asConst(m_entries)) {
         if (entry->group()) {
@@ -100,10 +119,41 @@ void EntryModel::setEntries(const QList<Entry*>& entries)
     endResetModel();
 }
 
+void EntryModel::setSearchResults(const QList<EntrySearcher::SearchResult>& searchResults)
+{
+    beginResetModel();
+
+    severConnections();
+
+    m_group = nullptr;
+    m_allGroups.clear();
+    m_searchResults = searchResults;
+    m_inSearchMode = true;
+
+    // Extract entries from search results for compatibility
+    m_entries.clear();
+    m_orgEntries.clear();
+    for (const auto& result : searchResults) {
+        m_entries.append(result.entry);
+        m_orgEntries.append(result.entry);
+        if (result.entry->group()) {
+            m_allGroups.insert(result.entry->group());
+        }
+    }
+
+    for (const auto group : m_allGroups) {
+        makeConnections(group);
+    }
+
+    endResetModel();
+}
+
 int EntryModel::rowCount(const QModelIndex& parent) const
 {
     if (parent.isValid()) {
         return 0;
+    } else if (m_inSearchMode && !m_searchResults.isEmpty()) {
+        return m_searchResults.size();
     } else {
         return m_entries.size();
     }
@@ -116,7 +166,7 @@ int EntryModel::columnCount(const QModelIndex& parent) const
         return 0;
     }
 
-    return 17;
+    return 18;
 }
 
 QVariant EntryModel::data(const QModelIndex& index, int role) const
@@ -234,13 +284,19 @@ QVariant EntryModel::data(const QModelIndex& index, int role) const
 
             return result;
         }
-        case Color:
+        case Color: {
             QColor backgroundColor;
             backgroundColor.setNamedColor(entry->backgroundColor());
             if (backgroundColor.isValid()) {
                 result = "▍";
                 return result;
             }
+        }
+        case RelevanceScore:
+            if (m_inSearchMode && index.row() < m_searchResults.size()) {
+                return QString::number(m_searchResults.at(index.row()).relevanceScore, 'f', 1);
+            }
+            return "";
         }
     } else if (role == Qt::UserRole) { // Qt::UserRole is used as sort role, see EntryView::EntryView()
         switch (index.column()) {
@@ -276,6 +332,11 @@ QVariant EntryModel::data(const QModelIndex& index, int role) const
             return entry->hasTotp();
         case Size:
             return entry->size();
+        case RelevanceScore:
+            if (m_inSearchMode && index.row() < m_searchResults.size()) {
+                return m_searchResults.at(index.row()).relevanceScore;
+            }
+            return 0.0;
         default:
             // For all other columns, simply use data provided by Qt::Display-
             // Role for sorting
@@ -406,6 +467,8 @@ QVariant EntryModel::headerData(int section, Qt::Orientation orientation, int ro
             return tr("Attachments");
         case Size:
             return tr("Size");
+        case RelevanceScore:
+            return tr("Score");
         }
 
     } else if (role == Qt::DecorationRole) {
