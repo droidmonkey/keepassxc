@@ -40,6 +40,7 @@ private slots:
     void testSkipProtected();
     void testUUIDSearch();
     void testTotpSearch();
+    void testRelevanceScoring();
 
 private:
     Group* m_rootGroup;

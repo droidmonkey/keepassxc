@@ -221,9 +221,11 @@ void EntryView::displaySearch(const QList<Entry*>& entries)
 
     setFirstEntryActive();
 
+    // Don't override the relevance-based ordering from the search results
+    // The entries are already sorted by relevance score, preserve that order
     // Reset sort column to 'Group', overrides DatabaseWidgetStateSync
-    m_sortModel->sort(EntryModel::ParentGroup, Qt::AscendingOrder);
-    sortByColumn(EntryModel::ParentGroup, Qt::AscendingOrder);
+    // m_sortModel->sort(EntryModel::ParentGroup, Qt::AscendingOrder);
+    // sortByColumn(EntryModel::ParentGroup, Qt::AscendingOrder);
 
     m_inSearchMode = true;
 }

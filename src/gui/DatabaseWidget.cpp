@@ -1715,7 +1715,13 @@ void DatabaseWidget::search(const QString& searchtext)
         searchGroup = currentGroup();
     }
 
-    auto results = m_entrySearcher->search(searchtext, searchGroup);
+    auto scoredResults = m_entrySearcher->searchWithScore(searchtext, searchGroup);
+    
+    // Convert scored results to entry list for compatibility
+    QList<Entry*> results;
+    for (const auto& result : scoredResults) {
+        results.append(result.entry);
+    }
 
     // Display a label detailing our search results
     if (!m_nextSearchLabelText.isEmpty()) {

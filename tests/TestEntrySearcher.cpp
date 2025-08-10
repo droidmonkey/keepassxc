@@ -434,3 +434,56 @@ void TestEntrySearcher::testTotpSearch()
     QVERIFY(!m_searchResult.contains(entry2));
     QVERIFY(!m_searchResult.contains(entry3));
 }
+
+void TestEntrySearcher::testRelevanceScoring()
+{
+    // Create entries with different field matches to test scoring
+    auto titleEntry = new Entry();
+    titleEntry->setTitle("testword");
+    titleEntry->setUsername("other");
+    titleEntry->setUrl("example.com");
+    titleEntry->setGroup(m_rootGroup);
+
+    auto usernameEntry = new Entry();
+    usernameEntry->setTitle("other");
+    usernameEntry->setUsername("testword");
+    usernameEntry->setUrl("example.com");
+    usernameEntry->setGroup(m_rootGroup);
+
+    auto urlEntry = new Entry();
+    urlEntry->setTitle("other");
+    urlEntry->setUsername("other");
+    urlEntry->setUrl("testword.com");
+    urlEntry->setGroup(m_rootGroup);
+
+    auto notesEntry = new Entry();
+    notesEntry->setTitle("other");
+    notesEntry->setUsername("other");
+    notesEntry->setUrl("example.com");
+    notesEntry->setNotes("testword in notes");
+    notesEntry->setGroup(m_rootGroup);
+
+    // Test relevance scoring
+    auto scoredResults = m_entrySearcher.searchWithScore("testword", m_rootGroup);
+    QCOMPARE(scoredResults.count(), 4);
+
+    // Verify order: title > username > url > notes (based on field priorities * match quality)
+    QCOMPARE(scoredResults[0].entry, titleEntry);   // Title should have highest score (exact match)
+    QCOMPARE(scoredResults[1].entry, usernameEntry); // Username should be second (exact match)
+    QCOMPARE(scoredResults[2].entry, urlEntry);     // URL should be third (prefix match)
+    QCOMPARE(scoredResults[3].entry, notesEntry);   // Notes should have lowest score (prefix match)
+
+    // Verify scores are in descending order
+    QVERIFY(scoredResults[0].relevanceScore > scoredResults[1].relevanceScore);
+    QVERIFY(scoredResults[1].relevanceScore > scoredResults[2].relevanceScore);
+    QVERIFY(scoredResults[2].relevanceScore > scoredResults[3].relevanceScore);
+    QVERIFY(scoredResults[3].relevanceScore > 0);
+
+    // Test that regular search still works (backward compatibility)
+    m_searchResult = m_entrySearcher.search("testword", m_rootGroup);
+    QCOMPARE(m_searchResult.count(), 4);
+    QVERIFY(m_searchResult.contains(titleEntry));
+    QVERIFY(m_searchResult.contains(usernameEntry));
+    QVERIFY(m_searchResult.contains(urlEntry));
+    QVERIFY(m_searchResult.contains(notesEntry));
+}
