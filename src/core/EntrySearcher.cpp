@@ -28,7 +28,8 @@ bool EntrySearcher::SearchResult::operator<(const SearchResult& other) const
 {
     if (qFuzzyCompare(relevanceScore, other.relevanceScore)) {
         // If scores are equal, sort by modification time (newest first)
-        return entry && other.entry && entry->timeInfo().lastModificationTime() < other.entry->timeInfo().lastModificationTime();
+        return entry && other.entry
+               && entry->timeInfo().lastModificationTime() < other.entry->timeInfo().lastModificationTime();
     }
     return relevanceScore < other.relevanceScore;
 }
@@ -101,7 +102,8 @@ QList<Entry*> EntrySearcher::repeat(const Group* baseGroup, bool forceSearch)
  * @param forceSearch ignore group search settings
  * @return list of search results with relevance scores, sorted by score
  */
-QList<EntrySearcher::SearchResult> EntrySearcher::searchWithScore(const QList<SearchTerm>& searchTerms, const Group* baseGroup, bool forceSearch)
+QList<EntrySearcher::SearchResult>
+EntrySearcher::searchWithScore(const QList<SearchTerm>& searchTerms, const Group* baseGroup, bool forceSearch)
 {
     Q_ASSERT(baseGroup);
     m_searchTerms = searchTerms;
@@ -116,7 +118,8 @@ QList<EntrySearcher::SearchResult> EntrySearcher::searchWithScore(const QList<Se
  * @param forceSearch ignore group search settings
  * @return list of search results with relevance scores, sorted by score
  */
-QList<EntrySearcher::SearchResult> EntrySearcher::searchWithScore(const QString& searchString, const Group* baseGroup, bool forceSearch)
+QList<EntrySearcher::SearchResult>
+EntrySearcher::searchWithScore(const QString& searchString, const Group* baseGroup, bool forceSearch)
 {
     Q_ASSERT(baseGroup);
     parseSearchTerms(searchString);
@@ -145,12 +148,12 @@ QList<EntrySearcher::SearchResult> EntrySearcher::repeatWithScore(const Group* b
             }
         }
     }
-    
+
     // Sort by relevance score (highest first), then by modification time (newest first)
     std::sort(results.begin(), results.end(), [](const SearchResult& a, const SearchResult& b) {
-        return b < a;  // Reverse order for descending sort
+        return b < a; // Reverse order for descending sort
     });
-    
+
     return results;
 }
 
@@ -161,7 +164,8 @@ QList<EntrySearcher::SearchResult> EntrySearcher::repeatWithScore(const Group* b
  * @param entries list of entries to include in the search
  * @return list of search results with relevance scores, sorted by score
  */
-QList<EntrySearcher::SearchResult> EntrySearcher::searchEntriesWithScore(const QList<SearchTerm>& searchTerms, const QList<Entry*>& entries)
+QList<EntrySearcher::SearchResult> EntrySearcher::searchEntriesWithScore(const QList<SearchTerm>& searchTerms,
+                                                                         const QList<Entry*>& entries)
 {
     m_searchTerms = searchTerms;
     return repeatEntriesWithScore(entries);
@@ -174,7 +178,8 @@ QList<EntrySearcher::SearchResult> EntrySearcher::searchEntriesWithScore(const Q
  * @param entries list of entries to include in the search
  * @return list of search results with relevance scores, sorted by score
  */
-QList<EntrySearcher::SearchResult> EntrySearcher::searchEntriesWithScore(const QString& searchString, const QList<Entry*>& entries)
+QList<EntrySearcher::SearchResult> EntrySearcher::searchEntriesWithScore(const QString& searchString,
+                                                                         const QList<Entry*>& entries)
 {
     parseSearchTerms(searchString);
     return repeatEntriesWithScore(entries);
@@ -195,12 +200,12 @@ QList<EntrySearcher::SearchResult> EntrySearcher::repeatEntriesWithScore(const Q
             results.append(SearchResult(entry, score));
         }
     }
-    
+
     // Sort by relevance score (highest first), then by modification time (newest first)
     std::sort(results.begin(), results.end(), [](const SearchResult& a, const SearchResult& b) {
-        return b < a;  // Reverse order for descending sort
+        return b < a; // Reverse order for descending sort
     });
-    
+
     return results;
 }
 
@@ -391,10 +396,10 @@ double EntrySearcher::searchEntryWithScore(const Entry* entry)
     // However when skipping protected fields, we will reject everything instead
     double totalScore = m_skipProtected ? 0.0 : 1.0;
     int matchedTerms = 0;
-    
+
     for (const auto& term : m_searchTerms) {
         double termScore = 0.0;
-        
+
         switch (term.field) {
         case Field::Title:
             termScore = calculateFieldScore(Field::Title, entry->resolvePlaceholder(entry->title()), term);
@@ -414,22 +419,18 @@ double EntrySearcher::searchEntryWithScore(const Entry* entry)
         case Field::Notes:
             termScore = calculateFieldScore(Field::Notes, entry->notes(), term);
             break;
-        case Field::AttributeKV:
-            {
-                bool found = !attributes.filter(term.regex).empty();
-                if (found) {
-                    termScore = getFieldPriority(Field::AttributeKV) * getMatchQuality(attributes.join(" "), term.regex);
-                }
+        case Field::AttributeKV: {
+            bool found = !attributes.filter(term.regex).empty();
+            if (found) {
+                termScore = getFieldPriority(Field::AttributeKV) * getMatchQuality(attributes.join(" "), term.regex);
             }
-            break;
-        case Field::Attachment:
-            {
-                bool found = !attachments.filter(term.regex).empty();
-                if (found) {
-                    termScore = getFieldPriority(Field::Attachment) * getMatchQuality(attachments.join(" "), term.regex);
-                }
+        } break;
+        case Field::Attachment: {
+            bool found = !attachments.filter(term.regex).empty();
+            if (found) {
+                termScore = getFieldPriority(Field::Attachment) * getMatchQuality(attachments.join(" "), term.regex);
             }
-            break;
+        } break;
         case Field::AttributeValue:
             if (m_skipProtected && entry->attributes()->isProtected(term.word)) {
                 continue;
@@ -446,14 +447,12 @@ double EntrySearcher::searchEntryWithScore(const Entry* entry)
                 termScore = calculateFieldScore(Field::Group, entry->group()->name(), term);
             }
             break;
-        case Field::Tag:
-            {
-                int tagIndex = entry->tagList().indexOf(term.regex);
-                if (tagIndex != -1) {
-                    termScore = getFieldPriority(Field::Tag) * 10.0;  // Exact match for tags
-                }
+        case Field::Tag: {
+            int tagIndex = entry->tagList().indexOf(term.regex);
+            if (tagIndex != -1) {
+                termScore = getFieldPriority(Field::Tag) * 10.0; // Exact match for tags
             }
-            break;
+        } break;
         case Field::Is:
             if (term.word.startsWith("expired", Qt::CaseInsensitive)) {
                 auto days = 0;
@@ -493,12 +492,13 @@ double EntrySearcher::searchEntryWithScore(const Entry* entry)
             // Terms without a specific field try to match title, username, url, notes, and tags
             // Take the highest scoring field
             double titleScore = calculateFieldScore(Field::Title, entry->resolvePlaceholder(entry->title()), term);
-            double usernameScore = calculateFieldScore(Field::Username, entry->resolvePlaceholder(entry->username()), term);
+            double usernameScore =
+                calculateFieldScore(Field::Username, entry->resolvePlaceholder(entry->username()), term);
             double urlScore = calculateFieldScore(Field::Url, entry->resolvePlaceholder(entry->url()), term);
             double notesScore = calculateFieldScore(Field::Notes, entry->notes(), term);
-            
+
             termScore = std::max({titleScore, usernameScore, urlScore, notesScore});
-            
+
             // Check tags separately
             int tagIndex = entry->tagList().indexOf(term.regex);
             if (tagIndex != -1) {
@@ -518,9 +518,9 @@ double EntrySearcher::searchEntryWithScore(const Entry* entry)
 
         // For non-excluded terms, we need a match
         if (termScore <= 0.0) {
-            return 0.0;  // No match found for required term
+            return 0.0; // No match found for required term
         }
-        
+
         totalScore += termScore;
         matchedTerms++;
     }
@@ -529,12 +529,12 @@ double EntrySearcher::searchEntryWithScore(const Entry* entry)
     if (matchedTerms == 0) {
         return totalScore;
     }
-    
+
     // Bonus for multiple field matches
     if (matchedTerms > 1) {
-        totalScore *= (1.0 + 0.2 * (matchedTerms - 1));  // 20% bonus per additional match
+        totalScore *= (1.0 + 0.2 * (matchedTerms - 1)); // 20% bonus per additional match
     }
-    
+
     // Bonus for non-expired entries
     if (!entry->isExpired()) {
         totalScore += 1.0;
@@ -548,10 +548,10 @@ double EntrySearcher::calculateFieldScore(Field field, const QString& fieldValue
     if (!term.regex.match(fieldValue).hasMatch()) {
         return 0.0;
     }
-    
+
     double fieldPriority = getFieldPriority(field);
     double matchQuality = getMatchQuality(fieldValue, term.regex);
-    
+
     return fieldPriority * matchQuality;
 }
 
@@ -588,24 +588,24 @@ double EntrySearcher::getMatchQuality(const QString& fieldValue, const QRegularE
     if (!match.hasMatch()) {
         return 0.0;
     }
-    
+
     QString matchedText = match.captured(0);
-    
+
     // Exact match bonus
     if (fieldValue.compare(matchedText, Qt::CaseInsensitive) == 0) {
         return 10.0;
     }
-    
+
     // Prefix match bonus
     if (match.capturedStart(0) == 0) {
         return 5.0;
     }
-    
+
     // Word boundary bonus (match starts at word boundary)
     if (match.capturedStart(0) == 0 || fieldValue.at(match.capturedStart(0) - 1).isSpace()) {
         return 3.0;
     }
-    
+
     // Regular substring match
     return 1.0;
 }

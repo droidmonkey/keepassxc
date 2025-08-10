@@ -468,10 +468,10 @@ void TestEntrySearcher::testRelevanceScoring()
     QCOMPARE(scoredResults.count(), 4);
 
     // Verify order: title > username > url > notes (based on field priorities * match quality)
-    QCOMPARE(scoredResults[0].entry, titleEntry);   // Title should have highest score (exact match)
+    QCOMPARE(scoredResults[0].entry, titleEntry); // Title should have highest score (exact match)
     QCOMPARE(scoredResults[1].entry, usernameEntry); // Username should be second (exact match)
-    QCOMPARE(scoredResults[2].entry, urlEntry);     // URL should be third (prefix match)
-    QCOMPARE(scoredResults[3].entry, notesEntry);   // Notes should have lowest score (prefix match)
+    QCOMPARE(scoredResults[2].entry, urlEntry); // URL should be third (prefix match)
+    QCOMPARE(scoredResults[3].entry, notesEntry); // Notes should have lowest score (prefix match)
 
     // Verify scores are in descending order
     QVERIFY(scoredResults[0].relevanceScore > scoredResults[1].relevanceScore);

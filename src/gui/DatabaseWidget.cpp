@@ -1716,7 +1716,7 @@ void DatabaseWidget::search(const QString& searchtext)
     }
 
     auto scoredResults = m_entrySearcher->searchWithScore(searchtext, searchGroup);
-    
+
     // Convert scored results to entry list for compatibility
     QList<Entry*> results;
     for (const auto& result : scoredResults) {
