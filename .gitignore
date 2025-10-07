@@ -31,3 +31,8 @@ out/
 # vcpkg
 vcpkg_installed*/
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
