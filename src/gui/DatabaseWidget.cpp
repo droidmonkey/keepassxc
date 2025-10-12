@@ -60,6 +60,12 @@
 #include "remote/RemoteHandler.h"
 #include "remote/RemoteSettings.h"
 
+// Include new manager classes
+#include "gui/DatabaseOperationsManager.h"
+#include "gui/EntryOperationsManager.h"
+#include "gui/SearchManager.h"
+#include "gui/ViewStateManager.h"
+
 #ifdef WITH_XC_NETWORKING
 #include "gui/IconDownloaderDialog.h"
 #endif
@@ -238,6 +244,22 @@ DatabaseWidget::DatabaseWidget(QSharedPointer<Database> db, QWidget* parent)
     connect(m_autosaveTimer, SIGNAL(timeout()), this, SLOT(onAutosaveDelayTimeout()));
 
     m_searchLimitGroup = config()->get(Config::SearchLimitGroup).toBool();
+
+    // Initialize manager components for improved separation of concerns
+    m_databaseOperationsManager.reset(new DatabaseOperationsManager(this));
+    m_entryOperationsManager.reset(new EntryOperationsManager(this));
+    m_searchManager.reset(new SearchManager(this));
+    m_viewStateManager.reset(new ViewStateManager(this));
+
+    // Connect manager signals
+    connect(m_databaseOperationsManager.data(),
+            &DatabaseOperationsManager::saveCompleted,
+            this,
+            &DatabaseWidget::databaseSaved);
+    connect(m_searchManager.data(), &SearchManager::searchModeActivated, this, &DatabaseWidget::searchModeActivated);
+    connect(m_searchManager.data(), &SearchManager::listModeActivated, this, &DatabaseWidget::listModeActivated);
+    connect(
+        m_viewStateManager.data(), &ViewStateManager::currentModeChanged, this, &DatabaseWidget::currentModeChanged);
 
 #ifdef WITH_XC_KEESHARE
     // We need to reregister the database to allow exports
