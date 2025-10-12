@@ -1,0 +1,120 @@
+#  Copyright (C) 2024 KeePassXC Team <team@keepassxc.org>
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 2 or (at your option)
+#  version 3 of the License.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Transactional module for KeePassXC
+
+set(transactional_SOURCES
+    Transaction.cpp
+    TransactionManager.cpp
+    ImmutableEntry.cpp
+    DirectTransaction.cpp
+    DirectTransactionManager.cpp
+    TransactionBuilder.cpp
+    TransactionBuilderBase.cpp
+    EntryTransactionBuilder.cpp
+    GroupTransactionBuilder.cpp
+    Builder.cpp
+)
+
+set(transactional_HEADERS
+    Transaction.h
+    TransactionManager.h
+    ImmutableEntry.h
+    DirectTransaction.h
+    DirectTransactionManager.h
+    TransactionBuilder.h
+    TransactionBuilderBase.h
+    EntryTransactionBuilder.h
+    GroupTransactionBuilder.h
+    Builder.h
+)
+
+# Add library for transactional functionality
+add_library(transactional STATIC ${transactional_SOURCES} ${transactional_HEADERS})
+
+target_link_libraries(transactional
+    Qt5::Core
+    Qt5::Widgets
+)
+
+target_include_directories(transactional
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    PRIVATE ${CMAKE_SOURCE_DIR}/src
+)
+
+# Add test executable if testing is enabled
+if(WITH_GUI_TESTS)
+    add_executable(TransactionalTest TransactionalTest.cpp)
+    target_link_libraries(TransactionalTest
+        transactional
+        Qt5::Test
+        Qt5::Core
+    )
+    
+    add_test(NAME TransactionalTest COMMAND TransactionalTest)
+    
+    add_executable(NewBuilderTest NewBuilderTest.cpp)
+    target_link_libraries(NewBuilderTest
+        transactional
+        Qt5::Test
+        Qt5::Core
+    )
+    
+    add_test(NAME NewBuilderTest COMMAND NewBuilderTest)
+endif()
+
+# Add demo executable
+add_executable(TransactionalDemo TransactionalDemo.cpp)
+target_link_libraries(TransactionalDemo
+    transactional
+    Qt5::Core
+)
+
+# Add direct transaction demo executable
+add_executable(DirectTransactionDemo DirectTransactionDemo.cpp)
+target_link_libraries(DirectTransactionDemo
+    transactional
+    Qt5::Core
+)
+
+# Add transaction builder demo executable
+add_executable(TransactionBuilderDemo TransactionBuilderDemo.cpp)
+target_link_libraries(TransactionBuilderDemo
+    transactional
+    Qt5::Core
+)
+
+# Add new transaction builder demo executable
+add_executable(NewBuilderDemo NewBuilderDemo.cpp)
+target_link_libraries(NewBuilderDemo
+    transactional
+    Qt5::Core
+)
+
+target_include_directories(TransactionalDemo
+    PRIVATE ${CMAKE_SOURCE_DIR}/src
+)
+
+target_include_directories(DirectTransactionDemo
+    PRIVATE ${CMAKE_SOURCE_DIR}/src
+)
+
+target_include_directories(TransactionBuilderDemo
+    PRIVATE ${CMAKE_SOURCE_DIR}/src
+)
+
+target_include_directories(NewBuilderDemo
+    PRIVATE ${CMAKE_SOURCE_DIR}/src
+)
