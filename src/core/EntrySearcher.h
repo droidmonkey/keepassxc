@@ -54,6 +54,21 @@ public:
         bool exclude;
     };
 
+    struct SearchResult
+    {
+        Entry* entry;
+        int relevanceScore;
+
+        SearchResult(Entry* e = nullptr, int score = 0)
+            : entry(e)
+            , relevanceScore(score)
+        {
+        }
+
+        // For sorting by relevance (highest first), then by modification time (newest first)
+        bool operator<(const SearchResult& other) const;
+    };
+
     explicit EntrySearcher(bool caseSensitive = false, bool skipProtected = false);
 
     QList<Entry*> search(const QList<SearchTerm>& searchTerms, const Group* baseGroup, bool forceSearch = false);
@@ -64,11 +79,25 @@ public:
     QList<Entry*> searchEntries(const QString& searchString, const QList<Entry*>& entries);
     QList<Entry*> repeatEntries(const QList<Entry*>& entries);
 
+    // New methods that return relevance-scored results
+    QList<SearchResult>
+    searchWithScore(const QList<SearchTerm>& searchTerms, const Group* baseGroup, bool forceSearch = false);
+    QList<SearchResult> searchWithScore(const QString& searchString, const Group* baseGroup, bool forceSearch = false);
+    QList<SearchResult> repeatWithScore(const Group* baseGroup, bool forceSearch = false);
+
+    QList<SearchResult> searchEntriesWithScore(const QList<SearchTerm>& searchTerms, const QList<Entry*>& entries);
+    QList<SearchResult> searchEntriesWithScore(const QString& searchString, const QList<Entry*>& entries);
+    QList<SearchResult> repeatEntriesWithScore(const QList<Entry*>& entries);
+
     void setCaseSensitive(bool state);
     bool isCaseSensitive() const;
 
 private:
     bool searchEntryImpl(const Entry* entry);
+    int searchEntryWithScore(const Entry* entry);
+    int calculateFieldScore(Field field, const QString& fieldValue, const SearchTerm& term);
+    int getFieldPriority(Field field);
+    int getMatchQuality(const QString& fieldValue, const QRegularExpression& regex);
     void parseSearchTerms(const QString& searchString);
 
     bool m_caseSensitive;

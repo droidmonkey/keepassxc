@@ -19,7 +19,7 @@
 #ifndef KEEPASSX_ENTRYVIEW_H
 #define KEEPASSX_ENTRYVIEW_H
 
-#include <QTreeView>
+#include <QTableView>
 
 #include "gui/entry/EntryModel.h"
 
@@ -29,7 +29,7 @@ class Group;
 class SortFilterHideProxyModel;
 class QActionGroup;
 
-class EntryView : public QTreeView
+class EntryView : public QTableView
 {
     Q_OBJECT
 
@@ -51,6 +51,7 @@ public:
 
     void displayGroup(Group* group);
     void displaySearch(const QList<Entry*>& entries);
+    void displaySearchResults(const QList<EntrySearcher::SearchResult>& searchResults);
 
 signals:
     void entryActivated(Entry* entry, EntryModel::ModelColumn column);

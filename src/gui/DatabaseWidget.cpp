@@ -630,8 +630,14 @@ void DatabaseWidget::deleteEntries(QList<Entry*> selectedEntries, bool confirm)
     }
 
     // Find the index above the first entry for selection after deletion
-    auto index = m_entryView->indexFromEntry(selectedEntries.first());
-    index = m_entryView->indexAbove(index);
+    QModelIndex topIndex;
+    for (auto entry : selectedEntries) {
+        auto index = m_entryView->indexFromEntry(entry);
+        if (!topIndex.isValid() || index.row() < topIndex.row()) {
+            topIndex = index;
+        }
+    }
+    topIndex = topIndex.siblingAtRow(topIndex.row() - 1);
 
     // Confirm entry removal before moving forward
     auto recycleBin = m_db->metadata()->recycleBin();
@@ -645,8 +651,8 @@ void DatabaseWidget::deleteEntries(QList<Entry*> selectedEntries, bool confirm)
     GuiTools::deleteEntriesResolveReferences(this, selectedEntries, permanent);
 
     // Select the row above the deleted entries
-    if (index.isValid()) {
-        m_entryView->setCurrentIndex(index);
+    if (topIndex.isValid()) {
+        m_entryView->setCurrentIndex(topIndex);
     } else {
         m_entryView->setFirstEntryActive();
     }
@@ -1738,26 +1744,26 @@ void DatabaseWidget::search(const QString& searchtext)
         searchGroup = currentGroup();
     }
 
-    auto results = m_entrySearcher->search(searchtext, searchGroup);
+    auto scoredResults = m_entrySearcher->searchWithScore(searchtext, searchGroup);
 
     // Display a label detailing our search results
     if (!m_nextSearchLabelText.isEmpty()) {
         // Custom searches don't display if there are no results
-        if (results.isEmpty()) {
+        if (scoredResults.isEmpty()) {
             endSearch();
             return;
         }
         m_searchingLabel->setText(m_nextSearchLabelText);
         m_nextSearchLabelText.clear();
-    } else if (!results.isEmpty()) {
-        m_searchingLabel->setText(tr("Search Results (%1)").arg(results.size()));
+    } else if (!scoredResults.isEmpty()) {
+        m_searchingLabel->setText(tr("Search Results (%1)").arg(scoredResults.size()));
     } else {
         m_searchingLabel->setText(tr("No Results"));
     }
 
     emit searchModeAboutToActivate();
 
-    m_entryView->displaySearch(results);
+    m_entryView->displaySearchResults(scoredResults);
     m_lastSearchText = searchtext;
 
     m_searchingLabel->setVisible(true);

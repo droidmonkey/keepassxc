@@ -23,9 +23,7 @@
 #include <QSet>
 
 #include "core/Config.h"
-
-class Entry;
-class Group;
+#include "core/EntrySearcher.h"
 
 class EntryModel : public QAbstractTableModel
 {
@@ -50,7 +48,8 @@ public:
         Size = 13,
         PasswordStrength = 14,
         Color = 15,
-        ParentGroupPath = 16
+        ParentGroupPath = 16,
+        RelevanceScore = 17
     };
 
     explicit EntryModel(QObject* parent = nullptr);
@@ -69,6 +68,7 @@ public:
 
     void setGroup(Group* group);
     void setEntries(const QList<Entry*>& entries);
+    void setSearchResults(const QList<EntrySearcher::SearchResult>& searchResults);
     void setBackgroundColorVisible(bool visible);
 
 private slots:
@@ -92,6 +92,8 @@ private:
     Group* m_group;
     QList<Entry*> m_entries;
     QList<Entry*> m_orgEntries;
+    QList<EntrySearcher::SearchResult> m_searchResults;
+    bool m_inSearchMode = false;
     QSet<const Group*> m_allGroups;
 
     const QString HiddenContentDisplay;
