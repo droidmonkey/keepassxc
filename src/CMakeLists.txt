@@ -157,6 +157,8 @@ set(gui_SOURCES
         gui/csvImport/CsvParserModel.cpp
         gui/entry/AutoTypeAssociationsModel.cpp
         gui/entry/EditEntryWidget.cpp
+        gui/entry/EntryPageController.cpp
+        gui/entry/EntryDataCoordinator.cpp
         gui/entry/EntryAttachmentsModel.cpp
         gui/entry/EntryAttachmentsWidget.cpp
         gui/entry/EntryAttributesModel.cpp
@@ -321,6 +323,10 @@ endif()
 add_subdirectory(sshagent)
 if(WITH_XC_SSHAGENT)
     set(sshagent_LIB sshagent)
+    list(APPEND gui_SOURCES
+            gui/entry/SSHAgentPageController.cpp
+            gui/entry/SSHAgentKeyDataModel.cpp
+            gui/entry/SSHAgentPageWidget.cpp)
 endif()
 
 add_subdirectory(fdosecrets)
