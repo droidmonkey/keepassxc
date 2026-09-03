@@ -440,3 +440,73 @@ void TestEntrySearcher::testTotpSearch()
     QVERIFY(!m_searchResult.contains(entry2));
     QVERIFY(!m_searchResult.contains(entry3));
 }
+
+void TestEntrySearcher::testDefaultSearchIncludesCustomAttributes()
+{
+    // Test that default search (without field prefixes) includes custom attributes
+    auto entry1 = new Entry();
+    entry1->setGroup(m_rootGroup);
+    entry1->setTitle("Regular Entry");
+    entry1->attributes()->set("CreditCard", "1234-5678-9012-3456");
+    entry1->attributes()->set("Phone", "555-1234");
+
+    auto entry2 = new Entry();
+    entry2->setGroup(m_rootGroup);
+    entry2->setTitle("Another Entry");
+    entry2->attributes()->set("AccountNumber", "ACC-9876");
+    entry2->attributes()->set("Note", "Some other info");
+
+    auto entry3 = new Entry();
+    entry3->setGroup(m_rootGroup);
+    entry3->setTitle("Third Entry");
+    entry3->setNotes("Contains 9876 in notes");
+
+    // Search for partial credit card number - should find entry1
+    m_searchResult = m_entrySearcher.search("5678", m_rootGroup);
+    QCOMPARE(m_searchResult.count(), 1);
+    QVERIFY(m_searchResult.contains(entry1));
+
+    // Search for phone number - should find entry1
+    m_searchResult = m_entrySearcher.search("555-1234", m_rootGroup);
+    QCOMPARE(m_searchResult.count(), 1);
+    QVERIFY(m_searchResult.contains(entry1));
+
+    // Search for account number - should find entry2
+    m_searchResult = m_entrySearcher.search("ACC-9876", m_rootGroup);
+    QCOMPARE(m_searchResult.count(), 1);
+    QVERIFY(m_searchResult.contains(entry2));
+
+    // Search for "9876" - should find both entry2 (custom attribute) and entry3 (notes)
+    m_searchResult = m_entrySearcher.search("9876", m_rootGroup);
+    QCOMPARE(m_searchResult.count(), 2);
+    QVERIFY(m_searchResult.contains(entry2));
+    QVERIFY(m_searchResult.contains(entry3));
+
+    // Search for attribute name - should find entry1 (attribute names are also searched)
+    m_searchResult = m_entrySearcher.search("CreditCard", m_rootGroup);
+    QCOMPARE(m_searchResult.count(), 1);
+    QVERIFY(m_searchResult.contains(entry1));
+
+    // Test that protected attributes are included in default search regardless of skipProtected flag
+    auto entry4 = new Entry();
+    entry4->setGroup(m_rootGroup);
+    entry4->setTitle("Protected Entry");
+    entry4->attributes()->set("ProtectedAttr", "secret123", true);
+    entry4->attributes()->set("PublicAttr", "public456");
+
+    // With skipProtected = false, should find protected attributes
+    m_entrySearcher = EntrySearcher(false, false);
+    m_searchResult = m_entrySearcher.search("secret123", m_rootGroup);
+    QCOMPARE(m_searchResult.count(), 1);
+    QVERIFY(m_searchResult.contains(entry4));
+
+    // With skipProtected = true, should STILL find protected attributes in default search
+    m_entrySearcher = EntrySearcher(false, true);
+    m_searchResult = m_entrySearcher.search("secret123", m_rootGroup);
+    QCOMPARE(m_searchResult.count(), 1);
+    QVERIFY(m_searchResult.contains(entry4));
+
+    m_searchResult = m_entrySearcher.search("public456", m_rootGroup);
+    QCOMPARE(m_searchResult.count(), 1);
+    QVERIFY(m_searchResult.contains(entry4));
+}
