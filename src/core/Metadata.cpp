@@ -35,6 +35,7 @@ namespace customDataKeys
 {
     static const QString savedSearch = QStringLiteral("KPXC_SavedSearch");
     static const QString autosaveDelay = QStringLiteral("KPXC_autosaveDelayMin");
+    static const QString passwordProfiles = QStringLiteral("KPXC_PasswordProfiles");
 }; // namespace customDataKeys
 
 Metadata::Metadata(QObject* parent)

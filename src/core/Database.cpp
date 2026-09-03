@@ -21,6 +21,7 @@
 #include "core/AsyncTask.h"
 #include "core/FileWatcher.h"
 #include "core/Group.h"
+#include "core/PasswordProfile.h"
 #include "crypto/Random.h"
 #include "format/KdbxXmlReader.h"
 #include "format/KeePass2Reader.h"
@@ -28,6 +29,7 @@
 #include "streams/HashingStream.h"
 
 #include <QFileInfo>
+#include <QJsonDocument>
 #include <QJsonObject>
 #include <QRegularExpression>
 #include <QSaveFile>
@@ -977,6 +979,105 @@ const QVariantMap& Database::publicCustomData() const
 void Database::setPublicCustomData(const QVariantMap& customData)
 {
     m_data.publicCustomData = customData;
+}
+
+void Database::addPasswordProfile(const PasswordProfile& profile)
+{
+    if (!profile.isValid()) {
+        return;
+    }
+
+    auto profiles = passwordProfiles();
+
+    // Remove existing profile with same name if present
+    for (int i = 0; i < profiles.size(); ++i) {
+        if (profiles[i].name() == profile.name()) {
+            profiles.removeAt(i);
+            break;
+        }
+    }
+
+    // Add new profile
+    profiles.append(profile);
+
+    // Convert to variant map and save
+    QVariantMap profilesMap;
+    for (const auto& p : profiles) {
+        profilesMap.insert(p.name(), p.toVariantMap());
+    }
+
+    auto json = QJsonDocument::fromVariant(profilesMap);
+    metadata()->customData()->set("KPXC_PasswordProfiles", json.toJson());
+    markAsModified();
+}
+
+void Database::removePasswordProfile(const QString& name)
+{
+    auto profiles = passwordProfiles();
+
+    for (int i = 0; i < profiles.size(); ++i) {
+        if (profiles[i].name() == name) {
+            profiles.removeAt(i);
+            break;
+        }
+    }
+
+    if (profiles.isEmpty()) {
+        metadata()->customData()->remove("KPXC_PasswordProfiles");
+    } else {
+        QVariantMap profilesMap;
+        for (const auto& p : profiles) {
+            profilesMap.insert(p.name(), p.toVariantMap());
+        }
+
+        auto json = QJsonDocument::fromVariant(profilesMap);
+        metadata()->customData()->set("KPXC_PasswordProfiles", json.toJson());
+    }
+    markAsModified();
+}
+
+PasswordProfile Database::passwordProfile(const QString& name) const
+{
+    auto profiles = passwordProfiles();
+    for (const auto& profile : profiles) {
+        if (profile.name() == name) {
+            return profile;
+        }
+    }
+    return PasswordProfile(); // Return invalid profile if not found
+}
+
+QStringList Database::passwordProfileNames() const
+{
+    QStringList names;
+    auto profiles = passwordProfiles();
+    for (const auto& profile : profiles) {
+        names.append(profile.name());
+    }
+    return names;
+}
+
+bool Database::hasPasswordProfile(const QString& name) const
+{
+    return passwordProfileNames().contains(name);
+}
+
+QList<PasswordProfile> Database::passwordProfiles() const
+{
+    QList<PasswordProfile> profiles;
+
+    auto profilesData = metadata()->customData()->value("KPXC_PasswordProfiles");
+    auto json = QJsonDocument::fromJson(profilesData.toUtf8());
+    auto profilesMap = json.toVariant().toMap();
+
+    for (auto it = profilesMap.constBegin(); it != profilesMap.constEnd(); ++it) {
+        auto profile = PasswordProfile::fromVariantMap(it.value().toMap());
+        if (profile.isValid()) {
+            profiles.append(profile);
+        }
+    }
+
+    return profiles;
 }
 
 void Database::createRecycleBin()

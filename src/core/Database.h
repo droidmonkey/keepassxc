@@ -37,6 +37,7 @@ enum class EntryReferenceType;
 class FileWatcher;
 class Group;
 class Metadata;
+class PasswordProfile;
 class QIODevice;
 
 struct DeletedObject
@@ -130,6 +131,14 @@ public:
     QVariantMap& publicCustomData();
     const QVariantMap& publicCustomData() const;
     void setPublicCustomData(const QVariantMap& customData);
+
+    // Password profiles
+    void addPasswordProfile(const PasswordProfile& profile);
+    void removePasswordProfile(const QString& name);
+    PasswordProfile passwordProfile(const QString& name) const;
+    QStringList passwordProfileNames() const;
+    bool hasPasswordProfile(const QString& name) const;
+    QList<PasswordProfile> passwordProfiles() const;
 
     void recycleGroup(Group* group);
     void recycleEntry(Entry* entry);
