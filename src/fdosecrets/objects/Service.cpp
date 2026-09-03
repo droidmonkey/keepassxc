@@ -169,10 +169,17 @@ namespace FdoSecrets
 
         m_insideEnsureDefaultAlias = true;
 
+        const auto defaultAlias = QString::fromLatin1(DEFAULT_ALIAS);
         auto coll = findCollection(m_databases->currentDatabaseWidget());
         if (coll) {
+            const auto defaultAliasPath =
+                QDBusObjectPath(DBUS_PATH_TEMPLATE_ALIAS.arg(DBUS_PATH_SECRETS, defaultAlias));
+            if (coll->aliases().contains(defaultAlias) && dbus()->pathToObject<Collection>(defaultAliasPath) != coll) {
+                coll->removeAlias(defaultAlias).okOrDie();
+            }
+
             // adding alias will automatically remove the association with previous collection.
-            coll->addAlias(DEFAULT_ALIAS).okOrDie();
+            coll->addAlias(defaultAlias).okOrDie();
         }
 
         m_insideEnsureDefaultAlias = false;

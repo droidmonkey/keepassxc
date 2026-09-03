@@ -98,6 +98,7 @@ private slots:
 
     void testAlias();
     void testDefaultAliasAlwaysPresent();
+    void testDefaultAliasRestoresMissingAliasPath();
 
     void testExposeSubgroup();
     void testModifyingExposedGroup();
