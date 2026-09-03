@@ -31,6 +31,7 @@
 #include <QJsonObject>
 #include <QRegularExpression>
 #include <QSaveFile>
+#include <QStorageInfo>
 #include <QTemporaryFile>
 #include <QTimer>
 
@@ -351,6 +352,33 @@ bool Database::saveAs(const QString& filePath, SaveAction action, const QString&
     return ok;
 }
 
+bool Database::checkDiskSpaceForSave(const QString& filePath, qint64 requiredSpace, QString* error)
+{
+    QFileInfo fileInfo(filePath);
+    qint64 availableSpace = 0;
+
+    if (fileInfo.exists()) {
+        // Get available space on the filesystem where the file resides
+        QStorageInfo storageInfo(fileInfo.absolutePath());
+        availableSpace = storageInfo.bytesAvailable();
+
+        // Account for the space that will be freed when we truncate the original file
+        availableSpace += fileInfo.size();
+    }
+
+    // Only proceed if we have enough space (with a small safety margin)
+    if (fileInfo.exists() && availableSpace > 0 && availableSpace < requiredSpace + 1024) {
+        if (error) {
+            *error = tr("Insufficient disk space to save database. Required: %1 bytes, Available: %2 bytes")
+                         .arg(requiredSpace)
+                         .arg(availableSpace);
+        }
+        return false;
+    }
+
+    return true;
+}
+
 bool Database::performSave(const QString& filePath, SaveAction action, const QString& backupFilePath, QString* error)
 {
     if (!backupFilePath.isNull()) {
@@ -362,14 +390,34 @@ bool Database::performSave(const QString& filePath, SaveAction action, const QSt
 
     switch (action) {
     case Atomic: {
+        // First, determine the required space by writing to a buffer
+        QBuffer dbBuffer;
+        dbBuffer.open(QIODevice::WriteOnly);
+        HashingStream hashingStream(&dbBuffer, QCryptographicHash::Md5, kFileBlockToHashSizeBytes);
+        if (!hashingStream.open(QIODevice::WriteOnly)) {
+            if (error) {
+                *error = hashingStream.errorString();
+            }
+            return false;
+        }
+        if (!writeDatabase(&hashingStream, error)) {
+            return false;
+        }
+
+        // Check available space before starting the atomic save operation
+        qint64 requiredSpace = dbBuffer.data().size();
+        if (!checkDiskSpaceForSave(filePath, requiredSpace, error)) {
+            return false;
+        }
+
         QSaveFile saveFile(filePath);
         if (saveFile.open(QIODevice::WriteOnly)) {
-            HashingStream hashingStream(&saveFile, QCryptographicHash::Md5, kFileBlockToHashSizeBytes);
-            if (!hashingStream.open(QIODevice::WriteOnly)) {
-                return false;
-            }
-            // write the database to the file
-            if (!writeDatabase(&hashingStream, error)) {
+            // Write the pre-computed database buffer to the file
+            qint64 bytesWritten = saveFile.write(dbBuffer.data());
+            if (bytesWritten != dbBuffer.data().size()) {
+                if (error) {
+                    *error = tr("Failed to write database file: %1").arg(saveFile.errorString());
+                }
                 return false;
             }
 
@@ -391,14 +439,34 @@ bool Database::performSave(const QString& filePath, SaveAction action, const QSt
         break;
     }
     case TempFile: {
+        // First, determine the required space by writing to a buffer
+        QBuffer dbBuffer;
+        dbBuffer.open(QIODevice::WriteOnly);
+        HashingStream hashingStream(&dbBuffer, QCryptographicHash::Md5, kFileBlockToHashSizeBytes);
+        if (!hashingStream.open(QIODevice::WriteOnly)) {
+            if (error) {
+                *error = hashingStream.errorString();
+            }
+            return false;
+        }
+        if (!writeDatabase(&hashingStream, error)) {
+            return false;
+        }
+
+        // Check available space before deleting the original file
+        qint64 requiredSpace = dbBuffer.data().size();
+        if (!checkDiskSpaceForSave(filePath, requiredSpace, error)) {
+            return false;
+        }
+
         QTemporaryFile tempFile;
         if (tempFile.open()) {
-            HashingStream hashingStream(&tempFile, QCryptographicHash::Md5, kFileBlockToHashSizeBytes);
-            if (!hashingStream.open(QIODevice::WriteOnly)) {
-                return false;
-            }
-            // write the database to the file
-            if (!writeDatabase(&hashingStream, error)) {
+            // Write the pre-computed database buffer to the temp file
+            qint64 bytesWritten = tempFile.write(dbBuffer.data());
+            if (bytesWritten != dbBuffer.data().size()) {
+                if (error) {
+                    *error = tr("Failed to write database file: %1").arg(tempFile.errorString());
+                }
                 return false;
             }
             tempFile.close(); // flush to disk
@@ -451,12 +519,26 @@ bool Database::performSave(const QString& filePath, SaveAction action, const QSt
 
         // Open the original database file for direct-write
         QFile dbFile(filePath);
+
+        // Check available space before truncating the file to prevent data loss
+        qint64 requiredSpace = dbBuffer.data().size();
+        if (!checkDiskSpaceForSave(filePath, requiredSpace, error)) {
+            return false;
+        }
+
         if (dbFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-            dbFile.write(dbBuffer.data());
+            qint64 bytesWritten = dbFile.write(dbBuffer.data());
             dbFile.close();
-            // store the new hash
-            m_fileBlockHash = hashingStream.hashingResult();
-            return true;
+            if (bytesWritten == dbBuffer.data().size()) {
+                // store the new hash
+                m_fileBlockHash = hashingStream.hashingResult();
+                return true;
+            } else {
+                if (error) {
+                    *error = tr("Failed to write database file: %1").arg(dbFile.errorString());
+                }
+                return false;
+            }
         }
         if (error) {
             *error = dbFile.errorString();

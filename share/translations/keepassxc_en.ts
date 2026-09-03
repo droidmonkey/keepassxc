@@ -1667,6 +1667,14 @@ Backup database located at %2</source>
         <source>No file path was provided.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Insufficient disk space to save database. Required: %1 bytes, Available: %2 bytes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to write database file: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>DatabaseOpenDialog</name>
