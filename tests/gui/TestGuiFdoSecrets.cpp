@@ -1687,6 +1687,23 @@ void TestGuiFdoSecrets::testDefaultAliasAlwaysPresent()
     DBUS_COMPARE(coll->locked(), false);
 }
 
+void TestGuiFdoSecrets::testDefaultAliasRestoresMissingAliasPath()
+{
+    auto service = enableService();
+    VERIFY(service);
+
+    auto coll = getProxy<CollectionProxy>(QDBusObjectPath(QStringLiteral(DBUS_PATH_DEFAULT_ALIAS)));
+    VERIFY(coll);
+    DBUS_COMPARE(coll->label(), m_db->metadata()->name());
+
+    m_plugin->dbus()->unregisterAlias(QStringLiteral("default"));
+    processEvents();
+
+    coll = getProxy<CollectionProxy>(QDBusObjectPath(QStringLiteral(DBUS_PATH_DEFAULT_ALIAS)));
+    VERIFY(coll);
+    DBUS_COMPARE(coll->label(), m_db->metadata()->name());
+}
+
 void TestGuiFdoSecrets::testExposeSubgroup()
 {
     auto subgroup = m_db->rootGroup()->findGroupByPath("/Homebanking/Subgroup");

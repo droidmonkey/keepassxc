@@ -17,6 +17,7 @@
  */
 
 #include "fdosecrets/dbus/DBusObject.h"
+#include "fdosecrets/objects/Service.h"
 
 #include <QDBusMetaType>
 #include <QMetaType>
@@ -245,6 +246,13 @@ namespace FdoSecrets
                                  const QDBusMessage& msg)
     {
         auto obj = m_objects.value(path, nullptr);
+        if (!obj && path == DBUS_PATH_TEMPLATE_ALIAS.arg(DBUS_PATH_SECRETS, QStringLiteral("default"))) {
+            auto service = qobject_cast<Service*>(m_objects.value(DBUS_PATH_SECRETS, nullptr));
+            if (service) {
+                QMetaObject::invokeMethod(service, "ensureDefaultAlias", Qt::DirectConnection);
+                obj = m_objects.value(path, nullptr);
+            }
+        }
         if (!obj) {
             qDebug() << "DBusMgr::handleMessage with unknown path" << msg;
             return false;

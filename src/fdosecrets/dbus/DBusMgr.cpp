@@ -528,6 +528,13 @@ namespace FdoSecrets
         // DBusMgr::unregisterObject only handles primary path
         m_objects.remove(path);
         m_conn.unregisterObject(path);
+
+        if (alias == QStringLiteral("default")) {
+            auto service = qobject_cast<Service*>(m_objects.value(DBUS_PATH_SECRETS, nullptr));
+            if (service) {
+                QMetaObject::invokeMethod(service, "ensureDefaultAlias", Qt::QueuedConnection);
+            }
+        }
     }
 
     void DBusMgr::emitCollectionCreated(Collection* coll)
